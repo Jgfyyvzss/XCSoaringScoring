@@ -1,3 +1,4 @@
+<img width="180" height="180" alt="XC_SS" src="https://github.com/user-attachments/assets/fa428800-38da-4544-95f4-fc13cf8e1962" />
 # XCSoaringScoring
 
 _(originally "SS Task Loader")_
