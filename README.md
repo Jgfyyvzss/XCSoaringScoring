@@ -15,6 +15,7 @@ instead of SoaringSpot/GlideAndSeek.
 <img width="270" height="567" alt="XCSS_Home" src="https://github.com/user-attachments/assets/527633c1-8ed4-435a-89c6-c1f6436ecd21" />
 <img width="270" height="567" alt="XCSS_Tasks" src="https://github.com/user-attachments/assets/c0187e48-18e2-4b9d-aa14-aeb8352a756f" />
 <img width="270" height="567" alt="XCSS_Upload" src="https://github.com/user-attachments/assets/a21ce0c9-8b01-404d-800f-ce743305ea01" />
+<img width="270" height="567" alt="xcssSettings" src="https://github.com/user-attachments/assets/b0fe86a2-cf62-45de-92c4-830fcd71795a" />
 
 
 
