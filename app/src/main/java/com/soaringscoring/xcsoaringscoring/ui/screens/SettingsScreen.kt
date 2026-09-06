@@ -244,6 +244,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         "Downloading a task always overwrites the previous one - there's only ever one current task on the device.",
         "XCSoar loads the latest download automatically on startup. Start XCSoar AFTER downloading the task. Always review the current task before relying on it!",
         "Waypoints for the whole contest download once via the pin icon in the task list's top bar. You need to manually select the waypoint file in XCSoar Configuration | File Locations"
+        "Upload igc files for scoring with the document upload icon at the top of the main screen. Login to your account on the settings page first, usually once at the start of an event is enough.
     )
     AlertDialog(
         onDismissRequest = onDismiss,
