@@ -67,11 +67,12 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.MEDIA_TREE_URI] = uri }
     }
 
-    suspend fun setUploadSettings(uploadApiKey: String, entryAddress: String) {
-        context.dataStore.edit {
-            it[Keys.UPLOAD_API_KEY] = uploadApiKey
-            it[Keys.ENTRY_ADDRESS] = entryAddress
-        }
+    suspend fun setUploadApiKey(value: String) {
+        context.dataStore.edit { it[Keys.UPLOAD_API_KEY] = value }
+    }
+
+    suspend fun setEntryAddress(value: String) {
+        context.dataStore.edit { it[Keys.ENTRY_ADDRESS] = value }
     }
 
     suspend fun setSelectedFolderUris(uris: Set<String>) {

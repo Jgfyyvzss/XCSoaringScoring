@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -21,9 +22,9 @@ import com.soaringscoring.xcsoaringscoring.ui.AppUiState
 fun SettingsScreen(
     state: AppUiState,
     onBack: () -> Unit,
-    onSave: (String) -> Unit,
     onChooseMediaFolder: () -> Unit,
-    onSaveUploadSettings: (String, String) -> Unit,
+    onSaveEntryAddress: (String) -> Unit,
+    onSaveExpertKeys: (String, String) -> Unit,
     onStartDustDevilSignIn: () -> Unit,
     onCancelDustDevilSignIn: () -> Unit,
     onSignOutDustDevil: () -> Unit,
@@ -60,35 +61,6 @@ fun SettingsScreen(
             MediaFolderAccessSetting(state, onChooseMediaFolder)
             HorizontalDivider()
 
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    "Expert feature: Not required",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("API key override (optional)") },
-                    singleLine = true,
-                    visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        TextButton(onClick = { reveal = !reveal }) {
-                            Text(if (reveal) "Hide" else "Show")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = { onSave(text.trim()) },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Save")
-                }
-            }
-            HorizontalDivider()
-
             DustDevilSignInSetting(
                 state = state,
                 onStartSignIn = onStartDustDevilSignIn,
@@ -96,31 +68,17 @@ fun SettingsScreen(
                 onSignOut = onSignOutDustDevil,
                 onDismissError = onDismissDustDevilError
             )
+
             HorizontalDivider()
 
             Column(Modifier.padding(16.dp)) {
-                Text("Flight upload", style = MaterialTheme.typography.titleMedium)
+                Text("Flight upload entry address", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Expert feature: Not required. Your entry address must also be added below" +
-                        "for the contest, from SoaringScoring's pilot downloads page.",
+                    "Only required if you have not signed in with DustDevil/SoaringScoring above.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = uploadKeyText,
-                    onValueChange = { uploadKeyText = it },
-                    label = { Text("Upload API key override (optional)") },
-                    singleLine = true,
-                    visualTransformation = if (uploadKeyReveal) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        TextButton(onClick = { uploadKeyReveal = !uploadKeyReveal }) {
-                            Text(if (uploadKeyReveal) "Hide" else "Show")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = entryAddressText,
                     onValueChange = { entryAddressText = it },
@@ -130,7 +88,56 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = { onSaveUploadSettings(uploadKeyText.trim(), entryAddressText.trim()) },
+                    onClick = { onSaveEntryAddress(entryAddressText.trim()) },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Save")
+                }
+            }
+            HorizontalDivider()
+
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Expert Features",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontStyle = FontStyle.Italic
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Override the app's built-in key. Most people never need either of these.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Tasks API key (optional)") },
+                    singleLine = true,
+                    visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TextButton(onClick = { reveal = !reveal }) {
+                            Text(if (reveal) "Hide" else "Show")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = uploadKeyText,
+                    onValueChange = { uploadKeyText = it },
+                    label = { Text("Upload API key (optional)") },
+                    singleLine = true,
+                    visualTransformation = if (uploadKeyReveal) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TextButton(onClick = { uploadKeyReveal = !uploadKeyReveal }) {
+                            Text(if (uploadKeyReveal) "Hide" else "Show")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { onSaveExpertKeys(text.trim(), uploadKeyText.trim()) },
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Save")
@@ -159,7 +166,7 @@ private fun DustDevilSignInSetting(
     onDismissError: () -> Unit
 ) {
     Column(Modifier.padding(16.dp)) {
-        Text("Sign in with SoaringScoring", style = MaterialTheme.typography.titleMedium)
+        Text("Sign in with DustDevil/SoaringScoring", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         when {
@@ -192,7 +199,7 @@ private fun DustDevilSignInSetting(
                 style = MaterialTheme.typography.bodySmall
             )
             state.personalKeyOverride.isNotBlank() -> Text(
-                "Unavailable while a personal API key override is set above - clear it to sign " +
+                "Unavailable while a personal API key override is set below - clear it to sign " +
                     "in, or keep using the manual fields below.",
                 style = MaterialTheme.typography.bodySmall
             )
@@ -212,7 +219,7 @@ private fun DustDevilSignInSetting(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = onStartSignIn) { Text("Sign in with SoaringScoring") }
+                Button(onClick = onStartSignIn) { Text("Sign in with DustDevil/SoaringScoring") }
             }
         }
 
@@ -235,8 +242,8 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         "On the home screen, tick which app(s) to save into (XCSoar and/or XCSoar Jet).",
         "Pick your contest, then your class (and handicap, if the day uses one).",
         "Downloading a task always overwrites the previous one - there's only ever one current task on the device.",
-        "On day one, open the downloaded task in XCSoar's task manager yourself. After that, XCSoar loads the latest download automatically on startup - just download and go.",
-        "Waypoints for the whole contest download once via the pin icon in the task list's top bar."
+        "XCSoar loads the latest download automatically on startup. Start XCSoar AFTER downloading the task. Always review the current task before relying on it!",
+        "Waypoints for the whole contest download once via the pin icon in the task list's top bar. You need to manually select the waypoint file in XCSoar Configuration | File Locations"
     )
     AlertDialog(
         onDismissRequest = onDismiss,

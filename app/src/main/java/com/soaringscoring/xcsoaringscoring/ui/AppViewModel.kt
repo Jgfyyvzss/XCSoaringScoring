@@ -464,9 +464,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Flight upload ---
 
-    fun saveUploadSettings(uploadApiKey: String, entryAddress: String) {
-        _uiState.value = _uiState.value.copy(uploadApiKey = uploadApiKey, entryAddress = entryAddress)
-        viewModelScope.launch { settings.setUploadSettings(uploadApiKey, entryAddress) }
+    fun saveEntryAddress(address: String) {
+        _uiState.value = _uiState.value.copy(entryAddress = address)
+        viewModelScope.launch { settings.setEntryAddress(address) }
+    }
+
+    private fun saveUploadApiKey(key: String) {
+        _uiState.value = _uiState.value.copy(uploadApiKey = key)
+        viewModelScope.launch { settings.setUploadApiKey(key) }
+    }
+
+    /** Settings' "Expert Features" section saves both override keys from one button. */
+    fun saveExpertKeys(taskApiKeyOverride: String, uploadApiKeyOverride: String) {
+        saveApiKey(taskApiKeyOverride)
+        saveUploadApiKey(uploadApiKeyOverride)
     }
 
     /** Scans every selected XCSoar folder's logs (recent versions) for .igc files. */

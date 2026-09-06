@@ -120,16 +120,16 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
             SettingsScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
-                onSave = {
-                    viewModel.saveApiKey(it)
-                    navController.popBackStack()
-                },
                 onChooseMediaFolder = {
                     // Point the system picker at Android/media as a starting hint.
                     mediaTreePicker.launch(null)
                 },
-                onSaveUploadSettings = { key, address ->
-                    viewModel.saveUploadSettings(key, address)
+                onSaveEntryAddress = {
+                    viewModel.saveEntryAddress(it)
+                    navController.popBackStack()
+                },
+                onSaveExpertKeys = { taskKey, uploadKey ->
+                    viewModel.saveExpertKeys(taskKey, uploadKey)
                     navController.popBackStack()
                 },
                 onStartDustDevilSignIn = {
