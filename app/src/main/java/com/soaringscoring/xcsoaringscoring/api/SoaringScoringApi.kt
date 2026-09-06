@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.api
+package com.soaringscoring.xcsoaringscoring.api
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,7 +29,7 @@ class SoaringScoringApi(
         // contests (walks every day/class/handicap), so give it more room.
         .readTimeout(45, TimeUnit.SECONDS)
         .apply {
-            if (com.soaringscoring.taskloader.BuildConfig.DEBUG) {
+            if (com.soaringscoring.xcsoaringscoring.BuildConfig.DEBUG) {
                 // Debug builds only — prints request/response headers (including
                 // the Authorization header) to Logcat under the "OkHttp" tag, so
                 // we can see exactly what's being sent while troubleshooting.
@@ -148,6 +148,54 @@ class SoaringScoringApi(
             ApiResult.Failure("Network error: ${e.message}")
         }
     }
+
+    /**
+     * URL to open in a Chrome Custom Tab (never a WebView - the pilot signs in on
+     * DustDevil.cloud's own page, which our app code must never be able to inspect).
+     * [clientKeyId] is the key's PUBLIC id from the SoaringScoring dashboard, not the
+     * secret - nothing sensitive travels in this URL. Lives outside `/api/v1/public`,
+     * unlike every other endpoint in this client.
+     */
+    fun dustDevilMobileStartUrl(clientKeyId: String): String =
+        "https://soaringscoring.com/api/auth/dustdevil/mobile-start?client_key_id=$clientKeyId"
+
+    /**
+     * Redeems the single-use, 2-minute code from the DustDevil.cloud sign-in redirect.
+     * [apiKey] MUST be the exact same key whose client_key_id started the flow
+     * (`dustDevilMobileStartUrl`) - the doc is explicit that a code redeemed by a
+     * different key fails identically to an expired/reused one (a plain 404). Callers
+     * must pass `BuildConfig.SS_API_KEY` here, never a personal override.
+     */
+    suspend fun exchangeDustDevilCode(code: String, apiKey: String): ApiResult<DustDevilExchangeResponse> =
+        withContext(Dispatchers.IO) {
+            try {
+                val body = json.encodeToString(DustDevilExchangeRequest.serializer(), DustDevilExchangeRequest(code))
+                    .toRequestBody("application/json".toMediaType())
+                val request = Request.Builder()
+                    .url("$baseUrl/auth/dustdevil-mobile/exchange")
+                    .header("Authorization", "Bearer $apiKey")
+                    .post(body)
+                    .build()
+                client.newCall(request).execute().use { resp ->
+                    val bodyString = resp.body?.string().orEmpty()
+                    if (!resp.isSuccessful) {
+                        // Bare HTTP status carries the meaning here (400 at start only,
+                        // 401/403/404 at exchange), not the {code, message} envelope the
+                        // rest of the API uses - describeDustDevilError() in AppViewModel
+                        // keys off httpCode, which failureFrom() always sets regardless
+                        // of whether a JSON envelope happened to be present.
+                        return@use failureFrom(resp.code, bodyString)
+                    }
+                    try {
+                        ApiResult.Success(json.decodeFromString(DustDevilExchangeResponse.serializer(), bodyString))
+                    } catch (e: Exception) {
+                        ApiResult.Failure("Could not parse response: ${e.message}", resp.code)
+                    }
+                }
+            } catch (e: IOException) {
+                ApiResult.Failure("Network error: ${e.message}")
+            }
+        }
 
     private suspend fun <T> get(
         url: String,

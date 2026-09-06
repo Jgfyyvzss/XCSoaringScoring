@@ -1,11 +1,11 @@
-package com.soaringscoring.taskloader.ui.screens
+package com.soaringscoring.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,7 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.taskloader.ui.AppUiState
+import com.soaringscoring.xcsoaringscoring.BuildConfig
+import com.soaringscoring.xcsoaringscoring.ui.AppUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,7 +23,11 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSave: (String) -> Unit,
     onChooseMediaFolder: () -> Unit,
-    onSaveUploadSettings: (String, String) -> Unit
+    onSaveUploadSettings: (String, String) -> Unit,
+    onStartDustDevilSignIn: () -> Unit,
+    onCancelDustDevilSignIn: () -> Unit,
+    onSignOutDustDevil: () -> Unit,
+    onDismissDustDevilError: () -> Unit
 ) {
     var text by remember(state.personalKeyOverride) { mutableStateOf(state.personalKeyOverride) }
     var reveal by remember { mutableStateOf(false) }
@@ -43,7 +48,7 @@ fun SettingsScreen(
                 },
                 actions = {
                     IconButton(onClick = { showHelp = true }) {
-                        Icon(Icons.Filled.HelpOutline, contentDescription = "Help")
+                        Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Help")
                     }
                 }
             )
@@ -57,9 +62,7 @@ fun SettingsScreen(
 
             Column(Modifier.padding(16.dp)) {
                 Text(
-                    "This app ships with a built-in SoaringScoring API key, so most people " +
-                        "don't need to do anything here. Only set your own key below if you've " +
-                        "been issued a personal one to test with.",
+                    "Expert feature: Not required",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
@@ -86,13 +89,20 @@ fun SettingsScreen(
             }
             HorizontalDivider()
 
+            DustDevilSignInSetting(
+                state = state,
+                onStartSignIn = onStartDustDevilSignIn,
+                onCancelSignIn = onCancelDustDevilSignIn,
+                onSignOut = onSignOutDustDevil,
+                onDismissError = onDismissDustDevilError
+            )
+            HorizontalDivider()
+
             Column(Modifier.padding(16.dp)) {
                 Text("Flight upload", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Uploading uses the same API key as everything else above by default - " +
-                        "only set your own upload key below if you've been issued a separate " +
-                        "personal one to test with. Either way you'll need your entry address " +
+                    "Expert feature: Not required. Your entry address must also be added below" +
                         "for the contest, from SoaringScoring's pilot downloads page.",
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -131,6 +141,86 @@ fun SettingsScreen(
 
     if (showHelp) {
         HelpDialog(onDismiss = { showHelp = false })
+    }
+}
+
+/**
+ * Sign in once and SoaringScoring resolves the pilot's own contest entries -
+ * no more hand-typing a competition number and contest key below. See
+ * DEVELOPMENT.md's "DustDevil.cloud sign-in" section: still being rolled out,
+ * so this stays alongside the manual fields rather than replacing them yet.
+ */
+@Composable
+private fun DustDevilSignInSetting(
+    state: AppUiState,
+    onStartSignIn: () -> Unit,
+    onCancelSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+    onDismissError: () -> Unit
+) {
+    Column(Modifier.padding(16.dp)) {
+        Text("Sign in with SoaringScoring", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+
+        when {
+            state.dustDevilPilot != null -> {
+                Text(
+                    "Signed in as ${state.dustDevilPilot.name} (${state.dustDevilPilot.email}).",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (state.dustDevilEntries.isEmpty()) {
+                    Text(
+                        "No contest entries found for this pilot yet - a contest DustDevil.cloud " +
+                            "knows about but hasn't synced to SoaringScoring won't appear here.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    Text(
+                        "${state.dustDevilEntries.size} contest entry(ies) found - pick which one " +
+                            "to upload to from the upload screen.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                TextButton(onClick = onSignOut, modifier = Modifier.align(Alignment.End)) {
+                    Text("Sign out")
+                }
+            }
+            BuildConfig.SS_DUSTDEVIL_CLIENT_KEY_ID.isBlank() -> Text(
+                "Not available yet - waiting on SoaringScoring to approve this app's sign-in " +
+                    "redirect. Use the manual fields below in the meantime.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            state.personalKeyOverride.isNotBlank() -> Text(
+                "Unavailable while a personal API key override is set above - clear it to sign " +
+                    "in, or keep using the manual fields below.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            state.dustDevilSignInInProgress -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Waiting for sign-in to complete…", style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = onCancelSignIn) { Text("Cancel") }
+            }
+            else -> {
+                Text(
+                    "Resolves your own contest entries automatically - replaces typing a " +
+                        "competition number and contest key below.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = onStartSignIn) { Text("Sign in with SoaringScoring") }
+            }
+        }
+
+        state.dustDevilError?.let { error ->
+            Spacer(Modifier.height(8.dp))
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = onDismissError) { Text("Dismiss") }
+        }
     }
 }
 

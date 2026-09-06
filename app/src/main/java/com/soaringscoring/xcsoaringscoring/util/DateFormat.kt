@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.util
+package com.soaringscoring.xcsoaringscoring.util
 
 /**
  * The API docs show plain dates ("2025-01-11"), but some responses come back

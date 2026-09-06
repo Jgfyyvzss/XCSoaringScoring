@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.api
+package com.soaringscoring.xcsoaringscoring.api
 
 import kotlinx.serialization.Serializable
 
@@ -83,6 +83,31 @@ data class UploadResult(
 
 @Serializable
 data class UploadResponse(val upload: UploadResult)
+
+/** One of a signed-in pilot's own contest entries, from DustDevil.cloud sign-in exchange. */
+@Serializable
+data class DustDevilEntry(
+    val contestId: String,
+    val contestName: String,
+    val contestSlug: String? = null,
+    val classId: String? = null,
+    val className: String? = null,
+    val competitionNumber: String? = null,
+    /** Ready to use directly with the Task Distribution and Flight Upload APIs. */
+    val localPart: String
+)
+
+@Serializable
+data class DustDevilPilot(val name: String, val email: String)
+
+@Serializable
+data class DustDevilExchangeRequest(val code: String)
+
+@Serializable
+data class DustDevilExchangeResponse(
+    val pilot: DustDevilPilot,
+    val entries: List<DustDevilEntry> = emptyList()
+)
 
 class DownloadedFile(val bytes: ByteArray, val fileName: String?)
 

@@ -9,16 +9,29 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:theme="@style/Theme.SSTaskLoader"
+        android:theme="@style/Theme.XCSoaringScoring"
         android:supportsRtl="true">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SSTaskLoader">
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.XCSoaringScoring">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- DustDevil.cloud sign-in redirect (see DEVELOPMENT.md). singleTask above
+                 keeps this on the existing Activity instance via onNewIntent() rather
+                 than spinning up a second one and losing in-memory app state. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="${oauthRedirectScheme}"
+                    android:host="${oauthRedirectHost}" />
             </intent-filter>
         </activity>
     </application>

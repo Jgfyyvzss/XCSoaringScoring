@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.ui.screens
+package com.soaringscoring.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,8 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.taskloader.ui.AppUiState
-import com.soaringscoring.taskloader.ui.TargetFolder
+import com.soaringscoring.xcsoaringscoring.ui.AppUiState
+import com.soaringscoring.xcsoaringscoring.ui.TargetFolder
 
 /**
  * One-time permission grant for the Android/media folder. Belongs in Settings -

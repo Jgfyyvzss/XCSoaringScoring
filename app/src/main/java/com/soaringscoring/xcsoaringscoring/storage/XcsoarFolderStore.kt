@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.storage
+package com.soaringscoring.xcsoaringscoring.storage
 
 import android.content.Context
 import android.net.Uri
@@ -84,7 +84,7 @@ object XcsoarFolderStore {
      * show which app (XCSoar vs XCSoar Jet) a file came from if the same-named
      * file happens to exist in both.
      */
-    fun findIgcFiles(context: Context, xcsoarFolder: DocumentFile): List<IgcFile> {
+    fun findIgcFiles(xcsoarFolder: DocumentFile): List<IgcFile> {
         val dir = resolveSubfolderOrRoot(xcsoarFolder, "logs")
         val sourceName = xcsoarFolder.name ?: "XCSoar"
         return dir.listFiles()

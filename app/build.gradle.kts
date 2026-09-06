@@ -16,12 +16,28 @@ val localProperties = Properties().apply {
 // on your machine and in CI secrets. See README "API key management" for the tradeoffs.
 val ssApiKey: String = localProperties.getProperty("ss.apiKey") ?: ""
 
+// DustDevil.cloud sign-in: the PUBLIC id of the above key, shown on the SoaringScoring
+// dashboard once the dev approves our redirect URI - not a secret itself, but there's
+// no point baking in a value that doesn't exist yet, so it stays out of git like the
+// key above. Empty until then; the sign-in button stays disabled with an explanatory
+// message rather than firing a request that can only 400. See DEVELOPMENT.md's
+// "DustDevil.cloud sign-in" section.
+val ssDustDevilClientKeyId: String = localProperties.getProperty("ss.dustDevilClientKeyId") ?: ""
+
+// DustDevil.cloud sign-in redirect scheme/host - the single source of truth, also used
+// below to fill in the manifest's intent-filter data element via manifestPlaceholders.
+// Deliberately NOT derived from applicationId (see DEVELOPMENT.md's "DustDevil.cloud
+// sign-in" section) - which is exactly why the app's rename to XCSoaringScoring
+// (applicationId below) required no change here and no re-registration with the dev.
+val oauthRedirectScheme = "xcsoaringscoring"
+val oauthRedirectHost = "oauth-callback"
+
 android {
-    namespace = "com.soaringscoring.taskloader"
+    namespace = "com.soaringscoring.xcsoaringscoring"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.soaringscoring.taskloader"
+        applicationId = "com.soaringscoring.xcsoaringscoring"
         minSdk = 26
         targetSdk = 34
         // Bump BOTH on every release you publish anywhere (GitHub, F-Droid, etc).
@@ -31,9 +47,15 @@ android {
         //   bump PATCH for a bugfix-only release, MINOR for new features, MAJOR for
         //   a big breaking change. Also feeds the friendly APK filename below.
         versionCode = 1
-        versionName = "0.2.0"
+        versionName = "0.3.0"
 
         buildConfigField("String", "SS_API_KEY", "\"$ssApiKey\"")
+        buildConfigField("String", "SS_DUSTDEVIL_CLIENT_KEY_ID", "\"$ssDustDevilClientKeyId\"")
+        buildConfigField("String", "OAUTH_REDIRECT_SCHEME", "\"$oauthRedirectScheme\"")
+        buildConfigField("String", "OAUTH_REDIRECT_HOST", "\"$oauthRedirectHost\"")
+
+        manifestPlaceholders["oauthRedirectScheme"] = oauthRedirectScheme
+        manifestPlaceholders["oauthRedirectHost"] = oauthRedirectHost
     }
 
     buildTypes {
@@ -63,7 +85,7 @@ android {
         val variant = this
         outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "SSTaskLoader-${variant.versionName}-${variant.name}.apk"
+            output.outputFileName = "XCSoaringScoring-${variant.versionName}-${variant.name}.apk"
         }
     }
 }
@@ -88,6 +110,10 @@ dependencies {
 
     // Document/SAF helper for writing into Android/media/<xcsoar>/Tasks
     implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Chrome Custom Tabs for DustDevil.cloud sign-in - never a WebView, since pilot
+    // credentials must never pass through a view our app code could inspect.
+    implementation("androidx.browser:browser:1.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

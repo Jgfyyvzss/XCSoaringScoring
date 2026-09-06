@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SS Task Loader"
+rootProject.name = "XCSoaringScoring"
 include(":app")

@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.ui.screens
+package com.soaringscoring.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,14 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.taskloader.api.Contest
-import com.soaringscoring.taskloader.api.ContestClass
-import com.soaringscoring.taskloader.api.TaskRow
-import com.soaringscoring.taskloader.ui.AppUiState
-import com.soaringscoring.taskloader.ui.ContestGrouping
-import com.soaringscoring.taskloader.ui.ContestTimeFrame
-import com.soaringscoring.taskloader.ui.TaskFiltering
-import com.soaringscoring.taskloader.util.dateOnly
+import com.soaringscoring.xcsoaringscoring.api.Contest
+import com.soaringscoring.xcsoaringscoring.api.ContestClass
+import com.soaringscoring.xcsoaringscoring.api.TaskRow
+import com.soaringscoring.xcsoaringscoring.ui.AppUiState
+import com.soaringscoring.xcsoaringscoring.ui.ContestGrouping
+import com.soaringscoring.xcsoaringscoring.ui.ContestTimeFrame
+import com.soaringscoring.xcsoaringscoring.ui.TaskFiltering
+import com.soaringscoring.xcsoaringscoring.util.dateOnly
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

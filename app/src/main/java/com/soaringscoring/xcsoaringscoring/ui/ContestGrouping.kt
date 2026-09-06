@@ -1,9 +1,9 @@
-package com.soaringscoring.taskloader.ui
+package com.soaringscoring.xcsoaringscoring.ui
 
-import com.soaringscoring.taskloader.api.Contest
-import com.soaringscoring.taskloader.api.ContestClass
-import com.soaringscoring.taskloader.api.TaskRow
-import com.soaringscoring.taskloader.util.dateOnly
+import com.soaringscoring.xcsoaringscoring.api.Contest
+import com.soaringscoring.xcsoaringscoring.api.ContestClass
+import com.soaringscoring.xcsoaringscoring.api.TaskRow
+import com.soaringscoring.xcsoaringscoring.util.dateOnly
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale

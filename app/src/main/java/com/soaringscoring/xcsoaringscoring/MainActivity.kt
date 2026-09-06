@@ -1,11 +1,14 @@
-package com.soaringscoring.taskloader
+package com.soaringscoring.xcsoaringscoring
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -17,11 +20,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.soaringscoring.taskloader.ui.AppViewModel
-import com.soaringscoring.taskloader.ui.screens.ContestListScreen
-import com.soaringscoring.taskloader.ui.screens.SettingsScreen
-import com.soaringscoring.taskloader.ui.screens.TaskListScreen
-import com.soaringscoring.taskloader.ui.screens.UploadScreen
+import com.soaringscoring.xcsoaringscoring.ui.AppViewModel
+import com.soaringscoring.xcsoaringscoring.ui.screens.ContestListScreen
+import com.soaringscoring.xcsoaringscoring.ui.screens.SettingsScreen
+import com.soaringscoring.xcsoaringscoring.ui.screens.TaskListScreen
+import com.soaringscoring.xcsoaringscoring.ui.screens.UploadScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -29,18 +32,47 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Cold start via the DustDevil.cloud redirect (e.g. the OS killed the
+        // Activity while the Custom Tab was in front) delivers it here instead
+        // of onNewIntent.
+        intent?.data?.let(::handleDustDevilRedirectIfMatching)
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavHost(viewModel)
+                    AppNavHost(viewModel, onStartDustDevilSignIn = ::launchDustDevilSignIn)
                 }
             }
+        }
+    }
+
+    // singleTask (see AndroidManifest.xml) routes the redirect here instead of
+    // spinning up a second Activity instance and losing in-memory AppViewModel
+    // state (ticked folders, selected contest, etc.) mid sign-in.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let(::handleDustDevilRedirectIfMatching)
+    }
+
+    private fun handleDustDevilRedirectIfMatching(uri: Uri) {
+        if (uri.scheme == BuildConfig.OAUTH_REDIRECT_SCHEME && uri.host == BuildConfig.OAUTH_REDIRECT_HOST) {
+            viewModel.handleDustDevilRedirect(uri)
+        }
+    }
+
+    private fun launchDustDevilSignIn(url: String) {
+        val uri = Uri.parse(url)
+        try {
+            CustomTabsIntent.Builder().build().launchUrl(this, uri)
+        } catch (e: Exception) {
+            // No browser on this device supports Custom Tabs - fall back to a
+            // plain external browser rather than leaving the pilot stuck.
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
     }
 }
 
 @Composable
-private fun AppNavHost(viewModel: AppViewModel) {
+private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String) -> Unit) {
     val navController: NavHostController = rememberNavController()
     val state by viewModel.uiState.collectAsState()
 
@@ -99,7 +131,13 @@ private fun AppNavHost(viewModel: AppViewModel) {
                 onSaveUploadSettings = { key, address ->
                     viewModel.saveUploadSettings(key, address)
                     navController.popBackStack()
-                }
+                },
+                onStartDustDevilSignIn = {
+                    viewModel.dustDevilSignInUrl()?.let(onStartDustDevilSignIn)
+                },
+                onCancelDustDevilSignIn = { viewModel.cancelDustDevilSignIn() },
+                onSignOutDustDevil = { viewModel.signOutDustDevil() },
+                onDismissDustDevilError = { viewModel.dismissDustDevilError() }
             )
         }
         composable("upload") {
@@ -110,7 +148,8 @@ private fun AppNavHost(viewModel: AppViewModel) {
                 onSelectFile = { viewModel.selectFileForUpload(it) },
                 onCancelPending = { viewModel.cancelPendingUpload() },
                 onConfirmUpload = { viewModel.confirmUpload() },
-                onDismissOutcome = { viewModel.dismissUploadOutcome() }
+                onDismissOutcome = { viewModel.dismissUploadOutcome() },
+                onSelectDustDevilEntry = { viewModel.selectDustDevilEntry(it) }
             )
         }
     }

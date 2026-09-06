@@ -1,4 +1,4 @@
-package com.soaringscoring.taskloader.ui.screens
+package com.soaringscoring.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,15 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.taskloader.api.Contest
-import com.soaringscoring.taskloader.ui.AppUiState
-import com.soaringscoring.taskloader.ui.ContestGrouping
-import com.soaringscoring.taskloader.ui.ContestTimeFrame
-import com.soaringscoring.taskloader.ui.TargetFolder
-import com.soaringscoring.taskloader.util.dateOnly
+import com.soaringscoring.xcsoaringscoring.R
+import com.soaringscoring.xcsoaringscoring.api.Contest
+import com.soaringscoring.xcsoaringscoring.ui.AppUiState
+import com.soaringscoring.xcsoaringscoring.ui.ContestGrouping
+import com.soaringscoring.xcsoaringscoring.ui.ContestTimeFrame
+import com.soaringscoring.xcsoaringscoring.ui.TargetFolder
+import com.soaringscoring.xcsoaringscoring.util.dateOnly
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +37,7 @@ fun ContestListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SS Task Loader") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = onUploadClick) {
                         Icon(Icons.Filled.UploadFile, contentDescription = "Upload flight")

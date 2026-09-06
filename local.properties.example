@@ -1,3 +1,9 @@
 # Copy this file to local.properties (which is gitignored) and fill in the real key.
 # Android Studio also writes sdk.dir into local.properties automatically - leave that line alone if present.
 ss.apiKey=ssk_live_paste_your_key_here
+
+# DustDevil.cloud sign-in: the PUBLIC client_key_id for the key above, once the
+# SoaringScoring dev approves our xcsoaringscoring://oauth-callback redirect URI
+# against it. Leave blank until then - the sign-in button stays disabled rather
+# than firing a request that can only 400. See DEVELOPMENT.md.
+ss.dustDevilClientKeyId=

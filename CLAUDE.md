@@ -25,9 +25,12 @@ download-and-copy routine during gliding competitions.
 ## Where things live
 
 ```
-app/src/main/java/com/soaringscoring/taskloader/
+app/src/main/java/com/soaringscoring/xcsoaringscoring/
   api/              SoaringScoringApi.kt (OkHttp client), Models.kt (all @Serializable data classes)
-  data/             SettingsRepository.kt - DataStore-backed settings
+  data/             SettingsRepository.kt - DataStore-backed settings (API
+                     keys, entry address, media tree URI, which target
+                     folders are ticked, and - in progress - cached
+                     DustDevil.cloud pilot/entries)
   storage/          XcsoarFolderStore.kt - all SAF folder/file resolution logic
   ui/               AppViewModel.kt (single ViewModel, single AppUiState) +
                      ContestGrouping.kt (date categorization/grouping/filtering, pure functions)
@@ -98,21 +101,62 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
    it's present; the Settings screen's "personal override" field is the
    fallback path for any build that doesn't have it baked in.
 
-9. **When editing multiple files for one change, keep them together.** This
-   project's update workflow has been: edit files here, zip just the changed
-   ones, drag into the GitHub repo. A partial set (e.g. a UI file added in one
-   update, its ViewModel wiring in another, applied out of order across
-   branches) has caused real regressions - see DEVELOPMENT.md's "Known
-   incidents" for a concrete example.
+9. **This one key covers `tasks:read` and `flights:write`, confirmed live** -
+   flight uploads default to the same effective key as task/contest reads
+   (`state.uploadApiKey.ifBlank { state.apiKey }` in `AppViewModel`), and this
+   was verified against the real API on 2026-09-05 (a test upload returned a
+   legitimate `NO_OFFICIAL_TASK` business error, not an auth failure). The
+   personal "Upload API key" override field is optional, not required - and
+   is itself slated for retirement once DustDevil sign-in (below) is tested,
+   before release. Don't reintroduce a hard requirement for a separate
+   upload key.
 
-10. **IGC upload's current manual key/address entry is likely to be replaced,
-    not extended.** The implemented version (personal `flights:write` key +
-    hand-typed `{competitionNumber}-{contestKey}` address in Settings) is a v1.
-    A DustDevil.cloud OAuth sign-in flow is proposed to replace both fields
-    entirely - see DEVELOPMENT.md's "DustDevil.cloud sign-in" section before
-    building anything further on top of the manual approach. Check whether
-    that proposal has since been implemented, agreed, or dropped before
-    assuming the current Settings fields are the long-term design.
+10. **When editing multiple files for one change, keep them together.** This
+    project's update workflow has been: edit files here, zip just the changed
+    ones, drag into the GitHub repo. A partial set (e.g. a UI file added in one
+    update, its ViewModel wiring in another, applied out of order across
+    branches) has caused real regressions - see DEVELOPMENT.md's "Known
+    incidents" for a concrete example.
+
+11. **IGC upload's manual key/address entry is being replaced by DustDevil.cloud
+    sign-in - actively in progress on the `OAuth` branch, not just proposed.**
+    See DEVELOPMENT.md's "DustDevil.cloud sign-in" section for full status,
+    decisions locked in, and what's still pending confirmation from the
+    SoaringScoring dev before the flow can be exercised end-to-end. Don't
+    assume the manual fields are the long-term design, but also don't rip
+    them out yet - they stay as the fallback path (a contest DustDevil.cloud
+    hasn't synced to SoaringScoring yet won't appear in the sign-in entries
+    list either) until sign-in has been tested for real and the personal-key
+    retirement above actually happens.
+
+12. **The OAuth redirect scheme (`xcsoaringscoring://oauth-callback`) is
+    deliberately NOT derived from applicationId.** This paid off: the app was
+    renamed from `com.soaringscoring.taskloader` to
+    `com.soaringscoring.xcsoaringscoring` (2026-09-05, alongside the
+    repo/product rename to XCSoaringScoring) with zero impact on the redirect
+    scheme - no re-registration with the SoaringScoring dev needed, since it
+    was never tied to the package name in the first place. Keep it that way if
+    the applicationId ever changes again.
+
+13. **DustDevil sign-in must use the app's own built-in key
+    (`BuildConfig.SS_API_KEY`) end-to-end, never the effective/override key.**
+    The `client_key_id` used to start the flow and the key used to redeem the
+    code must be the exact same key - the doc is explicit that a code redeemed
+    by a different key than the one that started the flow fails (a plain 404,
+    indistinguishable from an expired/reused code). Since Settings supports a
+    personal API key override that can differ from the built-in key, the
+    "Sign in with SoaringScoring" action is hidden/disabled whenever a
+    personal override is set, rather than silently using the wrong key.
+
+14. **applicationId changed (2026-09-05): `com.soaringscoring.taskloader` →
+    `com.soaringscoring.xcsoaringscoring`.** Android treats this as a
+    different app, not an upgrade - any device with the old build installed
+    needs to uninstall it before installing a new one; DataStore-persisted
+    settings (API key, ticked folders, DustDevil session) are lost, not
+    migrated. Done now deliberately, before any public store listing or the
+    DustDevil redirect URI being registered, since it only gets more
+    disruptive later. Don't assume a device with the old app still installed
+    will "just update."
 
 ## Conventions
 
@@ -126,7 +170,12 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
   raw API error text.
 - Card-based UI (Material 3 `Card`), not `ListItem` rows, for anything
   representing a distinct item (contests, tasks, IGC files).
-- Read the API docs in the repo (`SoaringSCoring_API.md`,
-  `SoaringScoringUpload_API.txt`) before assuming endpoint behavior - the live
-  API has diverged from the docs at least twice already (auth requirements,
-  and Current/Past categorization for same-day contests).
+- Read `docs/DustDevil_OAuth_reference.md` before touching the DustDevil sign-in
+  flow - it's the SoaringScoring dev's own reference doc, kept verbatim, and
+  is the source of truth over any summary of it elsewhere in these files.
+  (Earlier versions of this file also referenced `SoaringSCoring_API.md` and
+  `SoaringScoringUpload_API.txt` for the Task Distribution/Flight Upload
+  APIs - those aren't actually in the repo; don't assume they exist.) The
+  live API has diverged from documented behavior at least twice before (auth
+  requirements on `/contests`/`/classes`, and Current/Past categorization for
+  same-day contests) - verify against real responses when in doubt.

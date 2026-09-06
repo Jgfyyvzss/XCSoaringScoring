@@ -1,20 +1,22 @@
-package com.soaringscoring.taskloader.ui
+package com.soaringscoring.xcsoaringscoring.ui
 
 import android.app.Application
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.soaringscoring.taskloader.BuildConfig
-import com.soaringscoring.taskloader.api.ApiResult
-import com.soaringscoring.taskloader.api.Contest
-import com.soaringscoring.taskloader.api.ContestClass
-import com.soaringscoring.taskloader.api.SoaringScoringApi
-import com.soaringscoring.taskloader.api.TaskRow
-import com.soaringscoring.taskloader.api.UploadResult
-import com.soaringscoring.taskloader.data.SettingsRepository
-import com.soaringscoring.taskloader.storage.IgcFile
-import com.soaringscoring.taskloader.storage.XcsoarFolderStore
+import com.soaringscoring.xcsoaringscoring.BuildConfig
+import com.soaringscoring.xcsoaringscoring.api.ApiResult
+import com.soaringscoring.xcsoaringscoring.api.Contest
+import com.soaringscoring.xcsoaringscoring.api.ContestClass
+import com.soaringscoring.xcsoaringscoring.api.DustDevilEntry
+import com.soaringscoring.xcsoaringscoring.api.DustDevilPilot
+import com.soaringscoring.xcsoaringscoring.api.SoaringScoringApi
+import com.soaringscoring.xcsoaringscoring.api.TaskRow
+import com.soaringscoring.xcsoaringscoring.api.UploadResult
+import com.soaringscoring.xcsoaringscoring.data.SettingsRepository
+import com.soaringscoring.xcsoaringscoring.storage.IgcFile
+import com.soaringscoring.xcsoaringscoring.storage.XcsoarFolderStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,8 +64,18 @@ data class AppUiState(
     val igcFilesLoading: Boolean = false,
     val pendingUploadFile: IgcFile? = null,
     val isUploading: Boolean = false,
-    val uploadOutcome: UploadOutcome? = null
-)
+    val uploadOutcome: UploadOutcome? = null,
+
+    // --- DustDevil.cloud sign-in (see DEVELOPMENT.md) ---
+    val dustDevilPilot: DustDevilPilot? = null,
+    val dustDevilEntries: List<DustDevilEntry> = emptyList(),
+    val dustDevilSelectedLocalPart: String? = null,
+    val dustDevilSignInInProgress: Boolean = false,
+    val dustDevilError: String? = null
+) {
+    val dustDevilSelectedEntry: DustDevilEntry?
+        get() = dustDevilEntries.find { it.localPart == dustDevilSelectedLocalPart }
+}
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -80,12 +92,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val treeUriString = settings.mediaTreeUri.first()
             val uploadKey = settings.uploadApiKey.first()
             val address = settings.entryAddress.first()
+            val dustDevilSession = settings.dustDevilSession.first()
+            val dustDevilSelectedLocalPart = settings.dustDevilSelectedLocalPart.first()
+                ?: dustDevilSession?.entries?.firstOrNull()?.localPart
             _uiState.value = _uiState.value.copy(
                 apiKey = effectiveKey,
                 personalKeyOverride = savedKey,
                 mediaTreeUri = treeUriString?.let(Uri::parse),
                 uploadApiKey = uploadKey,
-                entryAddress = address
+                entryAddress = address,
+                dustDevilPilot = dustDevilSession?.pilot,
+                dustDevilEntries = dustDevilSession?.entries ?: emptyList(),
+                dustDevilSelectedLocalPart = dustDevilSelectedLocalPart
             )
             treeUriString?.let { refreshTargetFolders(Uri.parse(it)) }
             loadContests()
@@ -356,6 +374,94 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(statusMessage = null)
     }
 
+    // --- DustDevil.cloud sign-in ---
+
+    /**
+     * URL to open in a Chrome Custom Tab to start sign-in, or null if it's not
+     * available right now: either the redirect URI hasn't been approved yet
+     * (`client_key_id` unconfigured - see local.properties.example), or a personal
+     * API key override is set. Sign-in must use the exact same key that started
+     * the flow to redeem the code later, so it's restricted to the app's built-in
+     * key only rather than risk a silent mismatch - see DEVELOPMENT.md.
+     */
+    fun dustDevilSignInUrl(): String? {
+        if (BuildConfig.SS_DUSTDEVIL_CLIENT_KEY_ID.isBlank()) return null
+        if (_uiState.value.personalKeyOverride.isNotBlank()) return null
+        _uiState.value = _uiState.value.copy(dustDevilSignInInProgress = true, dustDevilError = null)
+        return api.dustDevilMobileStartUrl(BuildConfig.SS_DUSTDEVIL_CLIENT_KEY_ID)
+    }
+
+    /** Call if the pilot backs out of the Custom Tab without completing sign-in. */
+    fun cancelDustDevilSignIn() {
+        _uiState.value = _uiState.value.copy(dustDevilSignInInProgress = false)
+    }
+
+    /** Call from `onNewIntent` with the redirect URI caught by the manifest intent-filter. */
+    fun handleDustDevilRedirect(uri: Uri) {
+        val code = uri.getQueryParameter("code")
+        if (code.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(
+                dustDevilSignInInProgress = false,
+                dustDevilError = "Sign-in didn't return a code - try again."
+            )
+            return
+        }
+        viewModelScope.launch {
+            // Must be the app's own built-in key - the same one whose client_key_id
+            // started the flow. A personal override here would make the exchange
+            // fail (indistinguishable from an expired/reused code).
+            when (val result = api.exchangeDustDevilCode(code, BuildConfig.SS_API_KEY)) {
+                is ApiResult.Success -> {
+                    val firstLocalPart = result.data.entries.firstOrNull()?.localPart
+                    settings.setDustDevilSession(result.data)
+                    firstLocalPart?.let { settings.setDustDevilSelectedLocalPart(it) }
+                    _uiState.value = _uiState.value.copy(
+                        dustDevilSignInInProgress = false,
+                        dustDevilError = null,
+                        dustDevilPilot = result.data.pilot,
+                        dustDevilEntries = result.data.entries,
+                        dustDevilSelectedLocalPart = firstLocalPart
+                    )
+                }
+                is ApiResult.Failure -> _uiState.value = _uiState.value.copy(
+                    dustDevilSignInInProgress = false,
+                    dustDevilError = describeDustDevilError(result)
+                )
+            }
+        }
+    }
+
+    fun selectDustDevilEntry(entry: DustDevilEntry) {
+        _uiState.value = _uiState.value.copy(dustDevilSelectedLocalPart = entry.localPart)
+        viewModelScope.launch { settings.setDustDevilSelectedLocalPart(entry.localPart) }
+    }
+
+    fun signOutDustDevil() {
+        _uiState.value = _uiState.value.copy(
+            dustDevilPilot = null,
+            dustDevilEntries = emptyList(),
+            dustDevilSelectedLocalPart = null
+        )
+        viewModelScope.launch { settings.clearDustDevilSession() }
+    }
+
+    fun dismissDustDevilError() {
+        _uiState.value = _uiState.value.copy(dustDevilError = null)
+    }
+
+    /**
+     * This endpoint's errors are bare HTTP status codes with different meanings at
+     * different steps (400 only at the mobile-start redirect, 401/403/404 only at
+     * exchange) - not the {code, message} JSON envelope describeError()/
+     * describeUploadError() key off. See docs/DustDevil_OAuth_reference.md.
+     */
+    private fun describeDustDevilError(failure: ApiResult.Failure): String = when (failure.httpCode) {
+        400 -> "Sign-in isn't approved yet - ask SoaringScoring to approve this app's redirect URI."
+        401, 403 -> "Sign-in couldn't be verified - the app's key may be missing the contests:read scope."
+        404 -> "Sign-in link expired or was already used - try signing in again."
+        else -> failure.message
+    }
+
     // --- Flight upload ---
 
     fun saveUploadSettings(uploadApiKey: String, entryAddress: String) {
@@ -373,7 +479,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(igcFilesLoading = true)
             val found = withContext(Dispatchers.IO) {
-                selectedFolders.flatMap { XcsoarFolderStore.findIgcFiles(getApplication(), it.doc) }
+                selectedFolders.flatMap { XcsoarFolderStore.findIgcFiles(it.doc) }
             }
             _uiState.value = _uiState.value.copy(
                 igcFiles = found.sortedByDescending { it.doc.lastModified() },
@@ -393,12 +499,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun confirmUpload() {
         val state = _uiState.value
         val file = state.pendingUploadFile ?: return
-        // SoaringScoring's API key now carries both tasks:read and flights:write
-        // scopes, so uploads default to the same effective key as everything
-        // else. uploadApiKey is only a personal override for pilots issued
-        // their own separate key to test with.
-        val key = state.uploadApiKey.ifBlank { state.apiKey }
-        val address = state.entryAddress
+        // Signed in via DustDevil: identity comes from sign-in, always via the
+        // app's own built-in key. Otherwise fall back to the v1 manual key/address
+        // entry - kept working deliberately, since a contest DustDevil.cloud
+        // hasn't synced to SoaringScoring yet won't appear in the entries list
+        // either (see DEVELOPMENT.md). SoaringScoring's key now carries both
+        // tasks:read and flights:write, so the manual path's fallback key is the
+        // same effective key as everything else, not a required separate one.
+        val signedInEntry = state.dustDevilSelectedEntry
+        val key = if (signedInEntry != null) BuildConfig.SS_API_KEY else state.uploadApiKey.ifBlank { state.apiKey }
+        val address = signedInEntry?.localPart ?: state.entryAddress
 
         if (key.isBlank()) {
             _uiState.value = state.copy(

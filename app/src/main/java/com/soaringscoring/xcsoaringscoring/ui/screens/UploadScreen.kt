@@ -1,8 +1,10 @@
-package com.soaringscoring.taskloader.ui.screens
+package com.soaringscoring.xcsoaringscoring.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -16,9 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.taskloader.storage.IgcFile
-import com.soaringscoring.taskloader.ui.AppUiState
-import com.soaringscoring.taskloader.ui.UploadOutcome
+import com.soaringscoring.xcsoaringscoring.api.DustDevilEntry
+import com.soaringscoring.xcsoaringscoring.storage.IgcFile
+import com.soaringscoring.xcsoaringscoring.ui.AppUiState
+import com.soaringscoring.xcsoaringscoring.ui.UploadOutcome
 import java.text.DateFormat
 import java.util.Date
 
@@ -31,9 +34,17 @@ fun UploadScreen(
     onSelectFile: (IgcFile) -> Unit,
     onCancelPending: () -> Unit,
     onConfirmUpload: () -> Unit,
-    onDismissOutcome: () -> Unit
+    onDismissOutcome: () -> Unit,
+    onSelectDustDevilEntry: (DustDevilEntry) -> Unit
 ) {
     LaunchedEffect(Unit) { onRefresh() }
+
+    // A signed-in entry (see DEVELOPMENT.md's "DustDevil.cloud sign-in") always
+    // takes priority over the manual entry address - same fallback rule AppViewModel
+    // uses when actually sending the upload.
+    val destinationLabel = state.dustDevilSelectedEntry?.let {
+        "${it.contestName}${it.className?.let { className -> " – $className" } ?: ""}"
+    } ?: state.entryAddress
 
     Scaffold(
         topBar = {
@@ -49,12 +60,12 @@ fun UploadScreen(
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when {
-                state.entryAddress.isBlank() -> Box(
+                state.dustDevilSelectedEntry == null && state.entryAddress.isBlank() -> Box(
                     Modifier.fillMaxSize().padding(24.dp)
                 ) {
                     Text(
-                        "Set your entry address in Settings first — that's how uploads are " +
-                            "matched to your entry in the contest.",
+                        "Sign in with SoaringScoring or set your entry address in Settings " +
+                            "first — that's how uploads are matched to your entry in the contest.",
                         modifier = Modifier.align(Alignment.Center),
                         textAlign = TextAlign.Center
                     )
@@ -69,12 +80,21 @@ fun UploadScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(state.igcFiles) { file ->
-                        IgcFileCard(file = file, onClick = { onSelectFile(file) })
+                else -> Column {
+                    if (state.dustDevilEntries.size > 1) {
+                        DustDevilEntryPicker(
+                            entries = state.dustDevilEntries,
+                            selected = state.dustDevilSelectedEntry,
+                            onSelect = onSelectDustDevilEntry
+                        )
+                    }
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(state.igcFiles) { file ->
+                            IgcFileCard(file = file, onClick = { onSelectFile(file) })
+                        }
                     }
                 }
             }
@@ -104,7 +124,7 @@ fun UploadScreen(
             onDismissRequest = onCancelPending,
             title = { Text("Upload this flight?") },
             text = {
-                Text("${file.doc.name}\n\nSends to entry ${state.entryAddress}.")
+                Text("${file.doc.name}\n\nSends to entry $destinationLabel.")
             },
             confirmButton = {
                 TextButton(onClick = onConfirmUpload) { Text("Upload") }
@@ -117,6 +137,31 @@ fun UploadScreen(
 
     state.uploadOutcome?.let { outcome ->
         UploadOutcomeDialog(outcome = outcome, onDismiss = onDismissOutcome)
+    }
+}
+
+/** Only shown when sign-in resolved more than one contest entry for this pilot. */
+@Composable
+private fun DustDevilEntryPicker(
+    entries: List<DustDevilEntry>,
+    selected: DustDevilEntry?,
+    onSelect: (DustDevilEntry) -> Unit
+) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text("Uploading as", style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(4.dp))
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            entries.forEach { entry ->
+                FilterChip(
+                    selected = entry.localPart == selected?.localPart,
+                    onClick = { onSelect(entry) },
+                    label = { Text("${entry.contestName}${entry.className?.let { " – $it" } ?: ""}") }
+                )
+            }
+        }
     }
 }
 
