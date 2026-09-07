@@ -1,6 +1,6 @@
-# XCSoaringScoring
+<img width="180" height="180" alt="XC_SS" src="https://github.com/user-attachments/assets/fa428800-38da-4544-95f4-fc13cf8e1962" />
 
-_(originally "SS Task Loader")_
+# XCSoaringScoring
 
 A small Android app largely based on [XComps](https://github.com/DanielDe8/xcomps) 
 that loads task files from [SoaringScoring](https://soaringscoring.com)'s Public API 
@@ -10,9 +10,10 @@ straight into XCSoar (and XCSoar Jet), so you don't have to download and copy a
 Same idea as XComps, just built native (Kotlin + Jetpack Compose) against SoaringScoring
 instead of SoaringSpot/GlideAndSeek.
 
-<img width="270" height="567" alt="XCSS_Home" src="https://github.com/user-attachments/assets/527633c1-8ed4-435a-89c6-c1f6436ecd21" />
+<img width="270" height="567" alt="xcssMain" src="https://github.com/user-attachments/assets/e9712963-d1e0-44fc-8319-e50c8155be1a" />
 <img width="270" height="567" alt="XCSS_Tasks" src="https://github.com/user-attachments/assets/c0187e48-18e2-4b9d-aa14-aeb8352a756f" />
 <img width="270" height="567" alt="XCSS_Upload" src="https://github.com/user-attachments/assets/a21ce0c9-8b01-404d-800f-ce743305ea01" />
+<img width="270" height="567" alt="xcssSettings" src="https://github.com/user-attachments/assets/b0fe86a2-cf62-45de-92c4-830fcd71795a" />
 
 
 
@@ -27,12 +28,12 @@ instead of SoaringSpot/GlideAndSeek.
    (`org.xcsoar`, `com.zinuzoid.xcsoar_jet`, future forks, etc.) and lets you
    tick which ones to write to.
 4. Tapping the download icon on a task fetches the XCSoar `.tsk` file
-   (`files.xcsoarTsk` from the tasks response) and writes it to each ticked
-   folder's `Tasks/` subfolder under two names: `soaringscoring_task.tsk`
-   (load this by hand as the current task on day one) and `default.tsk`
-   (the name XCSoar auto-loads on startup, so every day after that just
-   needs the download — no manual load required). Both are overwritten on
-   every download, same filename-per-overwrite pattern as xcomps.
+   and writes it to each ticked folder's `Tasks/` subfolder under two names:
+   `default.tsk` and`soaringscoring_task.tsk`.
+   default.tsk is loaded automatically as soon as XCSoar starts so there is no need to load
+   the task, it just appears. Of course you should check it's correct before relying on it!
+   soaringscoring_task.tsk is available in case you need to manually re-load the task.
+   Both are overwritten on every download.
 5. A separate "get waypoints" action downloads the contest's SeeYou `.cup`
    waypoint file once per contest (the turnpoint set doesn't change day to
    day) and writes it to the `waypoints/` subfolder under its original
@@ -40,6 +41,8 @@ instead of SoaringSpot/GlideAndSeek.
    if the server doesn't supply one.
 6. Which folder(s) you've ticked to write into is remembered across app
    restarts (nothing is ticked by default — you choose explicitly).
+7. Events are split across 3 tabs Current, Future and Past so you can also
+   download historical tasks and turnpoint files, perhaps for a bit of practise.
 
 ## Status
 Functional.
