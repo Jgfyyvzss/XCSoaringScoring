@@ -91,6 +91,21 @@ no ads, no trackers, no Google Play Services, every dependency is Apache 2.0
   understood as a stopgap; keep it working as the fallback in the meantime
   (see the sign-in section for why it can't fully disappear even after
   sign-in ships).
+- **Task alternates + quick official-task check** (built on the
+  `TaskAlternates` branch, from `main`, independent of `OAuth`) - see
+  `docs/FEATURE-check-updated-task.md` for the full design. Drill-down
+  downloads now grab every candidate task for a day/class(/handicap), not
+  just one - SoaringScoring publishes alternates before a task is made
+  official, potentially with none yet flagged - saving each under its
+  retained server filename and only writing the official one (if any) to
+  `default.tsk`. A "Check for updated task" card on the contest list
+  resolves the current official task with a single lightweight metadata
+  call, reusing an already-downloaded alternate's bytes with **no network
+  file transfer** when possible - matters most exactly when connectivity is
+  worst (out at the launch vs. at the pilot briefing) - falling back to a
+  fresh download only for a genuinely new task. `TaskListScreen` now renders
+  one card per day/class/handicap slot (grouping several candidate rows),
+  not one per task row.
 
 ## DustDevil.cloud sign-in (in progress - `OAuth` branch)
 

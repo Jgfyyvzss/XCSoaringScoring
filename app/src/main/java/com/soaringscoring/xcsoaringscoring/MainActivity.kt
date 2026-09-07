@@ -96,7 +96,10 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                 onUploadClick = { navController.navigate("upload") },
                 onRetry = { viewModel.loadContests() },
                 onToggleFolder = { viewModel.toggleFolderSelected(it.doc) },
-                onSelectTimeFrame = { viewModel.selectTimeFrame(it) }
+                onSelectTimeFrame = { viewModel.selectTimeFrame(it) },
+                onCheckForUpdate = { viewModel.checkForUpdatedTask() },
+                onConfirmUpdatedDownload = { viewModel.confirmUpdatedTaskDownload(it) },
+                onDismissUpdateOutcome = { viewModel.dismissUpdateCheckOutcome() }
             )
         }
         composable("tasks") {
@@ -110,7 +113,7 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                         navController.popBackStack()
                     },
                     onSelectClass = { viewModel.selectClass(it) },
-                    onDownload = { viewModel.downloadTask(it) },
+                    onDownloadGroup = { viewModel.downloadTaskGroup(it) },
                     onDownloadWaypoints = { viewModel.downloadWaypoints() },
                     onDismissStatus = { viewModel.clearStatusMessage() }
                 )

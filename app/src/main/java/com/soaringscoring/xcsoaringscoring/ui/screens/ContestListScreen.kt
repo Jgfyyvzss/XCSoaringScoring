@@ -17,10 +17,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.soaringscoring.xcsoaringscoring.R
 import com.soaringscoring.xcsoaringscoring.api.Contest
+import com.soaringscoring.xcsoaringscoring.api.TaskRow
 import com.soaringscoring.xcsoaringscoring.ui.AppUiState
 import com.soaringscoring.xcsoaringscoring.ui.ContestGrouping
 import com.soaringscoring.xcsoaringscoring.ui.ContestTimeFrame
 import com.soaringscoring.xcsoaringscoring.ui.TargetFolder
+import com.soaringscoring.xcsoaringscoring.ui.UpdateCheckOutcome
 import com.soaringscoring.xcsoaringscoring.util.dateOnly
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,7 +34,10 @@ fun ContestListScreen(
     onUploadClick: () -> Unit,
     onRetry: () -> Unit,
     onToggleFolder: (TargetFolder) -> Unit,
-    onSelectTimeFrame: (ContestTimeFrame) -> Unit
+    onSelectTimeFrame: (ContestTimeFrame) -> Unit,
+    onCheckForUpdate: () -> Unit,
+    onConfirmUpdatedDownload: (TaskRow) -> Unit,
+    onDismissUpdateOutcome: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -52,6 +57,11 @@ fun ContestListScreen(
         Column(Modifier.padding(padding).fillMaxSize()) {
             TargetFolderCheckboxes(state, onToggleFolder)
             HorizontalDivider()
+
+            if (state.lastDownloadedTaskGroup != null) {
+                LastDownloadedTaskCheckCard(state = state, onCheckForUpdate = onCheckForUpdate)
+                HorizontalDivider()
+            }
 
             TabRow(selectedTabIndex = state.selectedTimeFrame.ordinal) {
                 ContestTimeFrame.entries.forEach { timeFrame ->
@@ -101,6 +111,101 @@ fun ContestListScreen(
                 }
             }
         }
+    }
+
+    state.updateCheckOutcome?.let { outcome ->
+        UpdateCheckOutcomeDialog(
+            outcome = outcome,
+            onConfirmDownload = onConfirmUpdatedDownload,
+            onDismiss = onDismissUpdateOutcome
+        )
+    }
+}
+
+/**
+ * The last day/class(/handicap) drill-down download, with a one-tap way to resolve
+ * whether the official task has since been decided or changed - see
+ * docs/FEATURE-check-updated-task.md. Only shown once something's actually been
+ * downloaded.
+ */
+@Composable
+private fun LastDownloadedTaskCheckCard(state: AppUiState, onCheckForUpdate: () -> Unit) {
+    val group = state.lastDownloadedTaskGroup ?: return
+    Row(
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                "${group.contestName} — ${group.className}" +
+                    (group.dhtHandicap?.let { " (handicap $it)" } ?: ""),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "Last downloaded task",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (state.checkingForUpdate) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else {
+            TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
+        }
+    }
+}
+
+@Composable
+private fun UpdateCheckOutcomeDialog(
+    outcome: UpdateCheckOutcome,
+    onConfirmDownload: (TaskRow) -> Unit,
+    onDismiss: () -> Unit
+) {
+    when (outcome) {
+        UpdateCheckOutcome.NoOfficialYet -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Not yet decided") },
+            text = { Text("No official task has been published for this day yet.") },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        )
+        UpdateCheckOutcome.NoChange -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("No change") },
+            text = { Text("The official task hasn't changed since you last downloaded it.") },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        )
+        is UpdateCheckOutcome.ConfirmedLocally -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Official task confirmed") },
+            text = {
+                Text(
+                    "Already had it on file (${outcome.fileName}) - applied to default.tsk, " +
+                        "no download needed."
+                )
+            },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        )
+        is UpdateCheckOutcome.NeedsDownload -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Task revised") },
+            text = {
+                Text(
+                    "Day ${outcome.newTask.dayNumber}'s official task has been revised since " +
+                        "you downloaded it. Download the updated version?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onConfirmDownload(outcome.newTask) }) { Text("Download") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        )
+        is UpdateCheckOutcome.Error -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Check failed") },
+            text = { Text(outcome.message) },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        )
     }
 }
 

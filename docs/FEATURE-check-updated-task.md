@@ -1,5 +1,12 @@
 # Feature: Task alternates + quick official-task check
 
+**Status: implemented on the `TaskAlternates` branch (branched from `main`,
+independent of the `OAuth` branch).** Everything below was built as
+specified; the two filename/copy items originally left open are now resolved
+inline where they're discussed, and the two genuinely open design questions
+(manual reset, variant pruning) are called out at the bottom as still
+unbuilt, not oversights.
+
 Supersedes the original `FEATURE-check-updated-task.md` draft. Scope grew
 during review: SoaringScoring publishes alternate tasks *before* one is
 flagged official ("Published tasks — including alternates — are available
@@ -93,7 +100,10 @@ tasks today). New policy, applied to every variant in a group:
    collide in a way it never could before when a download was always exactly
    one file. When falling back and the group has more than one variant,
    suffix the fallback name with a short slice of `taskId` so a collision is
-   structurally impossible.
+   structurally impossible. **Implemented as**:
+   `"soaringscoring_task_${taskId.takeLast(8)}.tsk"` when the group has more
+   than one variant, plain `"soaringscoring_task.tsk"` otherwise
+   (`AppViewModel.fallbackTaskFileName()`).
 
 ## `storage/XcsoarFolderStore.kt` changes
 
@@ -246,19 +256,20 @@ Wire `onDownloadGroup`, `onCheckForUpdate`, `onConfirmUpdatedDownload`,
 `GET /contests/:id/tasks` is documented as slow on large contests - don't
 add an aggressive client-side timeout on the Check flow's metadata call.
 
-## Open items for discussion
+## Open items - still genuinely unbuilt, not oversights
 
-1. Exact fallback-filename disambiguation format (taskId slice length,
-   separator) - cosmetic, fine to settle during implementation.
-2. Exact card/dialog copy for the new grouped UI and outcome set - cosmetic.
-3. No "forget last downloaded group" / manual reset action has been
-   specified (DustDevil sign-in has an equivalent "Sign out"). Worth
-   deciding whether pilots need a manual escape hatch, or whether it's
-   unnecessary since downloading any other group just overwrites the slot
-   naturally.
-4. `group.variants` is never pruned - if a later Check or download narrows
+1. No "forget last downloaded group" / manual reset action exists
+   (DustDevil sign-in has an equivalent "Sign out"). Worth deciding whether
+   pilots need a manual escape hatch, or whether it's unnecessary since
+   downloading any other group just overwrites the slot naturally.
+2. `group.variants` is never pruned - if a later Check or download narrows
    the candidate set (an alternate quietly withdrawn), stale entries just
    sit in the persisted record and in the Tasks folder. Harmless in
    practice (small JSON, and the earlier decision was explicitly not to
    auto-delete files from the pilot's XCSoar folder), but flagging so it's a
    deliberate non-goal rather than an oversight.
+
+(The filename-disambiguation format and card/dialog copy that were
+originally listed here as cosmetic open items are now resolved - see the
+"Implemented as" notes inline above and the actual UI code on the
+`TaskAlternates` branch.)

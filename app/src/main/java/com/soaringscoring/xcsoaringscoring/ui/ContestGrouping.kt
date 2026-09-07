@@ -74,6 +74,16 @@ object ContestGrouping {
     }
 }
 
+/**
+ * Identifies one "decision point": a day/class(/handicap) slot that may have several
+ * candidate tasks (alternates) published before one is flagged official, per
+ * docs/FEATURE-check-updated-task.md. Everything sharing this key is a candidate for
+ * the same slot, distinguished only by `taskId`/`isOfficialTask`.
+ */
+data class TaskGroupKey(val dayId: String, val classId: String?, val dhtHandicap: Double?)
+
+data class TaskGroup(val key: TaskGroupKey, val variants: List<TaskRow>)
+
 object TaskFiltering {
 
     /**
@@ -105,4 +115,19 @@ object TaskFiltering {
 
         return forClass.filter { dateOnly(it.date) == targetDate }
     }
+
+    /**
+     * [visibleTasks], grouped by day/class/handicap so alternates published for the
+     * same slot render as one card instead of several near-duplicates - see
+     * docs/FEATURE-check-updated-task.md.
+     */
+    fun groupedVisibleTasks(
+        tasks: List<TaskRow>,
+        selectedClass: ContestClass?,
+        timeFrame: ContestTimeFrame,
+        today: String = ContestGrouping.todayIso()
+    ): List<TaskGroup> =
+        visibleTasks(tasks, selectedClass, timeFrame, today)
+            .groupBy { TaskGroupKey(it.dayId, it.classId, it.dhtHandicap) }
+            .map { (key, variants) -> TaskGroup(key, variants) }
 }

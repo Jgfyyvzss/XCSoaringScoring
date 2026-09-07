@@ -14,6 +14,8 @@ import com.soaringscoring.xcsoaringscoring.api.DustDevilPilot
 import com.soaringscoring.xcsoaringscoring.api.SoaringScoringApi
 import com.soaringscoring.xcsoaringscoring.api.TaskRow
 import com.soaringscoring.xcsoaringscoring.api.UploadResult
+import com.soaringscoring.xcsoaringscoring.data.DownloadedTaskVariant
+import com.soaringscoring.xcsoaringscoring.data.LastDownloadedTaskGroup
 import com.soaringscoring.xcsoaringscoring.data.SettingsRepository
 import com.soaringscoring.xcsoaringscoring.storage.IgcFile
 import com.soaringscoring.xcsoaringscoring.storage.XcsoarFolderStore
@@ -30,6 +32,15 @@ data class TargetFolder(val doc: DocumentFile, val selected: Boolean)
 sealed class UploadOutcome {
     data class Success(val result: UploadResult) : UploadOutcome()
     data class Failure(val message: String) : UploadOutcome()
+}
+
+/** See docs/FEATURE-check-updated-task.md - checkForUpdatedTask()'s result. */
+sealed class UpdateCheckOutcome {
+    object NoOfficialYet : UpdateCheckOutcome()
+    object NoChange : UpdateCheckOutcome()
+    data class ConfirmedLocally(val fileName: String) : UpdateCheckOutcome()
+    data class NeedsDownload(val newTask: TaskRow) : UpdateCheckOutcome()
+    data class Error(val message: String) : UpdateCheckOutcome()
 }
 
 data class AppUiState(
@@ -53,9 +64,14 @@ data class AppUiState(
     val classesError: String? = null,
     val selectedClass: ContestClass? = null,
 
-    val downloadingTaskId: String? = null,
+    val downloadingGroupKey: TaskGroupKey? = null,
     val downloadingWaypoints: Boolean = false,
     val statusMessage: String? = null,
+
+    // --- Check for updated official task (see docs/FEATURE-check-updated-task.md) ---
+    val lastDownloadedTaskGroup: LastDownloadedTaskGroup? = null,
+    val checkingForUpdate: Boolean = false,
+    val updateCheckOutcome: UpdateCheckOutcome? = null,
 
     // --- Flight upload ---
     val uploadApiKey: String = "",
@@ -95,12 +111,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val dustDevilSession = settings.dustDevilSession.first()
             val dustDevilSelectedLocalPart = settings.dustDevilSelectedLocalPart.first()
                 ?: dustDevilSession?.entries?.firstOrNull()?.localPart
+            val lastDownloadedTaskGroup = settings.lastDownloadedTaskGroup.first()
             _uiState.value = _uiState.value.copy(
                 apiKey = effectiveKey,
                 personalKeyOverride = savedKey,
                 mediaTreeUri = treeUriString?.let(Uri::parse),
                 uploadApiKey = uploadKey,
                 entryAddress = address,
+                lastDownloadedTaskGroup = lastDownloadedTaskGroup,
                 dustDevilPilot = dustDevilSession?.pilot,
                 dustDevilEntries = dustDevilSession?.entries ?: emptyList(),
                 dustDevilSelectedLocalPart = dustDevilSelectedLocalPart
@@ -136,7 +154,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             classesError = null,
             selectedClass = null
         )
-        viewModelScope.launch { settings.setLastContest(contest.id, contest.name) }
         loadTasks(contest)
         loadClasses(contest)
     }
@@ -259,10 +276,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Download ---
 
-    fun downloadTask(task: TaskRow) {
+    /**
+     * Downloads every candidate task in [group] (not just one) - SoaringScoring
+     * publishes alternates before a day's task is made official, so a drill-down
+     * download grabs all of them onto the device; only the one flagged
+     * `isOfficialTask` (if any) also becomes `default.tsk`. See
+     * docs/FEATURE-check-updated-task.md.
+     */
+    fun downloadTaskGroup(group: TaskGroup) {
         val state = _uiState.value
         val key = state.apiKey
         val selectedFolders = state.targetFolders.filter { it.selected }
+        val contest = state.selectedContest
+        val contestClass = state.selectedClass
         if (key.isBlank()) {
             _uiState.value = state.copy(statusMessage = "Add an API key in Settings first.")
             return
@@ -271,45 +297,193 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = state.copy(statusMessage = "Choose at least one XCSoar folder first.")
             return
         }
+        if (contest == null || contestClass == null) return
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(downloadingTaskId = task.taskId, statusMessage = null)
-            when (val result = api.downloadTaskFile(task.files.xcsoarTsk, key)) {
-                is ApiResult.Success -> {
-                    var okCount = 0
-                    selectedFolders.forEach { folder ->
-                        // Written under both names: soaringscoring_task.tsk is the
-                        // stable name pilots load as the current task by hand on day
-                        // one; default.tsk is the name XCSoar auto-loads on startup,
-                        // so every day after that just needs the download, no manual
-                        // load required.
-                        val savedStableName = XcsoarFolderStore.writeTaskFile(
-                            getApplication(),
-                            folder.doc,
-                            "soaringscoring_task.tsk",
-                            result.data.bytes
-                        )
-                        val savedDefault = XcsoarFolderStore.writeTaskFile(
-                            getApplication(),
-                            folder.doc,
-                            "default.tsk",
-                            result.data.bytes
-                        )
-                        if (savedStableName && savedDefault) okCount++
-                    }
-                    _uiState.value = _uiState.value.copy(
-                        downloadingTaskId = null,
-                        statusMessage = if (okCount == selectedFolders.size)
-                            "Task loaded into $okCount folder(s)."
-                        else
-                            "Loaded into $okCount of ${selectedFolders.size} folder(s) — check permissions."
+            _uiState.value = _uiState.value.copy(downloadingGroupKey = group.key, statusMessage = null)
+
+            val downloadedVariants = mutableListOf<DownloadedTaskVariant>()
+            var failureMessage: String? = null
+            // Only disambiguate the fallback filename when there's more than one
+            // variant in play - a single-task download never had a collision risk.
+            val disambiguateFallback = group.variants.size > 1
+
+            group.variants.forEach { task ->
+                val result = downloadAndWriteVariant(task, selectedFolders, key, disambiguateFallback)
+                result.variant?.let { downloadedVariants += it }
+                result.failureMessage?.let { failureMessage = it }
+            }
+
+            if (downloadedVariants.isNotEmpty()) {
+                val updatedGroup = LastDownloadedTaskGroup(
+                    contestId = contest.id,
+                    contestName = contest.name,
+                    classId = contestClass.id,
+                    className = contestClass.name,
+                    dayId = group.key.dayId,
+                    dhtHandicap = group.key.dhtHandicap,
+                    variants = downloadedVariants,
+                    confirmedOfficialTaskId = downloadedVariants.firstOrNull { it.wasOfficialAtDownload }?.taskId
+                )
+                settings.setLastDownloadedTaskGroup(updatedGroup)
+                _uiState.value = _uiState.value.copy(lastDownloadedTaskGroup = updatedGroup)
+            }
+
+            val activeCount = downloadedVariants.count { it.wasOfficialAtDownload }
+            val alternateCount = downloadedVariants.size - activeCount
+            val baseMessage =
+                "Downloaded $activeCount active task, $alternateCount alternates into ${selectedFolders.size} folder(s)."
+            _uiState.value = _uiState.value.copy(
+                downloadingGroupKey = null,
+                statusMessage = if (failureMessage != null) "$baseMessage Some downloads failed: $failureMessage" else baseMessage
+            )
+        }
+    }
+
+    private class VariantWriteResult(val variant: DownloadedTaskVariant?, val failureMessage: String?)
+
+    /**
+     * Downloads one task's file and writes it under its retained server filename to
+     * every ticked folder; additionally writes to `default.tsk` if it's the official
+     * task. A variant only counts as saved if at least one folder write actually
+     * succeeded - never record something as downloaded that never reached disk.
+     */
+    private suspend fun downloadAndWriteVariant(
+        task: TaskRow,
+        selectedFolders: List<TargetFolder>,
+        apiKey: String,
+        disambiguateFallback: Boolean
+    ): VariantWriteResult {
+        return when (val result = api.downloadTaskFile(task.files.xcsoarTsk, apiKey)) {
+            is ApiResult.Success -> {
+                val fileName = result.data.fileName?.takeIf { it.isNotBlank() }
+                    ?: fallbackTaskFileName(task.taskId, disambiguateFallback)
+                var okCount = 0
+                selectedFolders.forEach { folder ->
+                    val savedNamed = XcsoarFolderStore.writeTaskFile(
+                        getApplication(), folder.doc, fileName, result.data.bytes
                     )
+                    if (task.isOfficialTask) {
+                        XcsoarFolderStore.writeTaskFile(getApplication(), folder.doc, "default.tsk", result.data.bytes)
+                    }
+                    if (savedNamed) okCount++
+                }
+                VariantWriteResult(
+                    variant = if (okCount > 0) DownloadedTaskVariant(task.taskId, fileName, task.isOfficialTask) else null,
+                    failureMessage = null
+                )
+            }
+            is ApiResult.Failure -> VariantWriteResult(variant = null, failureMessage = describeError(result))
+        }
+    }
+
+    /**
+     * Only used when the server doesn't supply a filename at all. Suffixed with part
+     * of the taskId whenever more than one variant is being saved at once, so two
+     * alternates can never collide on the same generic name - something that could
+     * never happen before a download was always exactly one file.
+     */
+    private fun fallbackTaskFileName(taskId: String, disambiguate: Boolean): String =
+        if (disambiguate) "soaringscoring_task_${taskId.takeLast(8)}.tsk" else "soaringscoring_task.tsk"
+
+    /**
+     * Resolves "what is the current official task for the last thing I downloaded,"
+     * reusing already-downloaded bytes with no network file transfer when possible -
+     * see docs/FEATURE-check-updated-task.md. Only needs a lightweight metadata call
+     * (`getTasks()`); the local-file-first path matters most exactly when
+     * connectivity is worst (out at the launch, vs. at the pilot briefing).
+     */
+    fun checkForUpdatedTask() {
+        val group = _uiState.value.lastDownloadedTaskGroup ?: return
+        val key = _uiState.value.apiKey
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(checkingForUpdate = true, updateCheckOutcome = null)
+            when (val result = api.getTasks(group.contestId, key)) {
+                is ApiResult.Success -> {
+                    val officialRow = result.data.tasks.firstOrNull {
+                        it.dayId == group.dayId && it.classId == group.classId &&
+                            it.dhtHandicap == group.dhtHandicap && it.isOfficialTask
+                    }
+                    val outcome = resolveUpdateOutcome(group, officialRow)
+                    _uiState.value = _uiState.value.copy(checkingForUpdate = false, updateCheckOutcome = outcome)
                 }
                 is ApiResult.Failure -> _uiState.value = _uiState.value.copy(
-                    downloadingTaskId = null,
-                    statusMessage = "Download failed: ${describeError(result)}"
+                    checkingForUpdate = false,
+                    updateCheckOutcome = UpdateCheckOutcome.Error(describeError(result))
                 )
             }
         }
+    }
+
+    private suspend fun resolveUpdateOutcome(group: LastDownloadedTaskGroup, officialRow: TaskRow?): UpdateCheckOutcome {
+        if (officialRow == null) return UpdateCheckOutcome.NoOfficialYet
+        if (officialRow.taskId == group.confirmedOfficialTaskId) return UpdateCheckOutcome.NoChange
+
+        val cachedVariant = group.variants.firstOrNull { it.taskId == officialRow.taskId }
+        if (cachedVariant != null) {
+            val selectedFolders = _uiState.value.targetFolders.filter { it.selected }
+            var bytes: ByteArray? = null
+            for (folder in selectedFolders) {
+                bytes = XcsoarFolderStore.readTaskFile(getApplication(), folder.doc, cachedVariant.fileName)
+                if (bytes != null) break
+            }
+            if (bytes != null) {
+                var wroteAny = false
+                selectedFolders.forEach { folder ->
+                    if (XcsoarFolderStore.writeTaskFile(getApplication(), folder.doc, "default.tsk", bytes)) wroteAny = true
+                }
+                if (wroteAny) {
+                    val updatedGroup = group.copy(confirmedOfficialTaskId = officialRow.taskId)
+                    settings.setLastDownloadedTaskGroup(updatedGroup)
+                    _uiState.value = _uiState.value.copy(lastDownloadedTaskGroup = updatedGroup)
+                    return UpdateCheckOutcome.ConfirmedLocally(cachedVariant.fileName)
+                }
+                // Local copy was found but couldn't be written anywhere (e.g.
+                // permissions revoked) - fall through to a fresh network download
+                // rather than silently doing nothing.
+            }
+            // findFile() miss or read failure - safe to just treat as "never seen
+            // this task before" and fetch it fresh below.
+        }
+        return UpdateCheckOutcome.NeedsDownload(officialRow)
+    }
+
+    /** Pilot confirmed the `NeedsDownload` dialog - fetch and apply the new official task. */
+    fun confirmUpdatedTaskDownload(task: TaskRow) {
+        val state = _uiState.value
+        val group = state.lastDownloadedTaskGroup ?: return
+        val key = state.apiKey
+        val selectedFolders = state.targetFolders.filter { it.selected }
+        _uiState.value = state.copy(updateCheckOutcome = null)
+        if (selectedFolders.isEmpty()) {
+            _uiState.value = _uiState.value.copy(statusMessage = "Choose at least one XCSoar folder first.")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(checkingForUpdate = true)
+            val result = downloadAndWriteVariant(task, selectedFolders, key, disambiguateFallback = false)
+            if (result.variant != null) {
+                val updatedGroup = group.copy(
+                    variants = group.variants.filterNot { it.taskId == result.variant.taskId } + result.variant,
+                    confirmedOfficialTaskId = result.variant.taskId
+                )
+                settings.setLastDownloadedTaskGroup(updatedGroup)
+                _uiState.value = _uiState.value.copy(
+                    checkingForUpdate = false,
+                    lastDownloadedTaskGroup = updatedGroup,
+                    statusMessage = "Official task updated and loaded."
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    checkingForUpdate = false,
+                    statusMessage = "Download failed: ${result.failureMessage ?: "unknown error"}"
+                )
+            }
+        }
+    }
+
+    fun dismissUpdateCheckOutcome() {
+        _uiState.value = _uiState.value.copy(updateCheckOutcome = null)
     }
 
     /**
