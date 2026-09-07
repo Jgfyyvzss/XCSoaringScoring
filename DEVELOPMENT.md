@@ -229,6 +229,65 @@ disabled with an explanatory message until a real `client_key_id` is
 configured (mirrors the existing `BuildConfig.SS_API_KEY`-missing fallback
 pattern).
 
+### Design note: OAuth-aware task browsing shortcut (proposed, not yet built)
+
+Prompted by SoaringScoring's fuller "Finding your task" pilot guide, which
+describes DustDevil.cloud's own site behavior: "Signing in... lets the site
+redirect you straight to your pilot page for the active contest, skipping
+the competition and class browsing steps." Worth doing the equivalent here,
+since the data to do it already exists in code - `DustDevilEntry` already
+carries `contestId`/`classId` per entry, fetched for the upload flow. This
+is a genuinely separate capability from the upload-identity use above, not
+implied by it - flagging it as its own unbuilt proposal rather than folding
+it silently into "decisions locked in."
+
+**What's resolved for free**: contest + class. No new API surface - this is
+literally the same `DustDevilEntry` data already sitting in `AppUiState`
+once signed in.
+
+**What's NOT resolved - question for the SoaringScoring dev**: handicap. On
+a DHT day each glider flies a different total distance, and per the guide
+"the site automatically shows your handicap-specific file" - but that's
+DustDevil.cloud's own site presumably reading the pilot's registered glider
+handicap from *their* records. Nothing in the exchange response
+(`docs/DustDevil_OAuth_reference.md`) carries a handicap or glider field, so
+our app has no way to auto-resolve it today. **Ask: is a pilot's glider /
+handicap value available through any endpoint (the exchange, or a separate
+one)?** If yes, this shortcut can resolve event + class + handicap
+completely, matching the site's behavior exactly. If no, it resolves event +
+class only, and a DHT day still needs the same manual pick-your-handicap
+interaction as today (the multi-alternate task group from
+`FEATURE-check-updated-task.md`'s grouping).
+
+**Ambiguity the guide's phrasing glosses over**: `entries` is a list, and
+`docs/DustDevil_OAuth_reference.md` doesn't say it's filtered to "only the
+currently active contest" - a pilot with entries in more than one imported
+contest makes "the pilot's specific current event" ambiguous from sign-in
+data alone. No new UI needed for this though - it's the same shape as
+Upload's existing multi-entry case, so reuse `DustDevilEntryPicker` (or the
+same underlying pattern) rather than building a second picker.
+
+**Proposed shape**: not a conditional start destination (branching what the
+app opens to adds real complexity for a should-always-work app) - instead an
+additional action on `ContestListScreen` (something like "Jump to my
+event"), visible only when signed in with a resolvable entry, that:
+1. Resolves the entry (auto if one, picker if more than one).
+2. Fetches the *real* `Contest`/`ContestClass` objects from
+   `getContests()`/`getClasses()` matching that `contestId`/`classId` -
+   **not** a synthetic object built from just the entry's
+   `contestId`/`contestName`. This matters concretely:
+   `ContestGrouping.categorize()` needs real `startDate`/`endDate`/
+   `timezone` to correctly classify Current vs. not, and the entry doesn't
+   carry those.
+3. Navigates straight into `TaskListScreen` with that class pre-selected -
+   the existing date-based "today's task" filtering in `TaskFiltering`/
+   `ContestGrouping` already does the rest, entirely unrelated to sign-in.
+
+The full browse-everything flow stays completely untouched and
+simultaneously available either way - same philosophy as every other
+DustDevil integration point so far: it offers a shortcut, it never removes
+the manual path.
+
 ## Known incidents worth remembering
 
 - **Case-sensitive folder names caused silent data loss.** One XCSoar install
@@ -289,6 +348,13 @@ pattern).
   handling, DustDevil API models, DataStore session storage). Blocked on the
   SoaringScoring dev for redirect URI approval + `client_key_id` before it
   can be tested end-to-end; the sign-in button stays disabled until then.
+- **OAuth-aware task browsing shortcut** - see "Design note" under the
+  DustDevil section above. Proposed, not built: use the already-fetched
+  `DustDevilEntry` data to skip straight to a signed-in pilot's event/class
+  from the contest list, alongside (not replacing) normal browsing. Blocked
+  on asking the SoaringScoring dev whether a pilot's glider/handicap is
+  available anywhere, which determines whether this can resolve handicap
+  too or just event + class.
 - **Personal API key retirement** - both Settings override fields (general
   and upload) are earmarked for removal once DustDevil sign-in has been
   tested for real, before release. Not done yet - see "Decisions locked in"
