@@ -44,6 +44,7 @@ instead of SoaringSpot/GlideAndSeek.
    restarts (nothing is ticked by default — you choose explicitly).
 7. Events are split across 3 tabs Current, Future and Past so you can also
    download historical tasks and turnpoint files, perhaps for a bit of practise.
+8. Upload igc files for scoring.
 
 ## Status
 Functional.
