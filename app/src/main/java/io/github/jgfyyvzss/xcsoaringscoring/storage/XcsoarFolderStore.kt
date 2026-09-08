@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.storage
+package io.github.jgfyyvzss.xcsoaringscoring.storage
 
 import android.content.Context
 import android.net.Uri

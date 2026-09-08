@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring
+package io.github.jgfyyvzss.xcsoaringscoring
 
 import android.content.Intent
 import android.net.Uri
@@ -20,11 +20,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.soaringscoring.xcsoaringscoring.ui.AppViewModel
-import com.soaringscoring.xcsoaringscoring.ui.screens.ContestListScreen
-import com.soaringscoring.xcsoaringscoring.ui.screens.SettingsScreen
-import com.soaringscoring.xcsoaringscoring.ui.screens.TaskListScreen
-import com.soaringscoring.xcsoaringscoring.ui.screens.UploadScreen
+import io.github.jgfyyvzss.xcsoaringscoring.ui.AppViewModel
+import io.github.jgfyyvzss.xcsoaringscoring.ui.screens.ContestListScreen
+import io.github.jgfyyvzss.xcsoaringscoring.ui.screens.SettingsScreen
+import io.github.jgfyyvzss.xcsoaringscoring.ui.screens.TaskListScreen
+import io.github.jgfyyvzss.xcsoaringscoring.ui.screens.UploadScreen
 
 class MainActivity : ComponentActivity() {
 

@@ -1,22 +1,22 @@
-package com.soaringscoring.xcsoaringscoring.ui
+package io.github.jgfyyvzss.xcsoaringscoring.ui
 
 import android.app.Application
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.soaringscoring.xcsoaringscoring.BuildConfig
-import com.soaringscoring.xcsoaringscoring.api.ApiResult
-import com.soaringscoring.xcsoaringscoring.api.Contest
-import com.soaringscoring.xcsoaringscoring.api.ContestClass
-import com.soaringscoring.xcsoaringscoring.api.DustDevilEntry
-import com.soaringscoring.xcsoaringscoring.api.DustDevilPilot
-import com.soaringscoring.xcsoaringscoring.api.SoaringScoringApi
-import com.soaringscoring.xcsoaringscoring.api.TaskRow
-import com.soaringscoring.xcsoaringscoring.api.UploadResult
-import com.soaringscoring.xcsoaringscoring.data.SettingsRepository
-import com.soaringscoring.xcsoaringscoring.storage.IgcFile
-import com.soaringscoring.xcsoaringscoring.storage.XcsoarFolderStore
+import io.github.jgfyyvzss.xcsoaringscoring.BuildConfig
+import io.github.jgfyyvzss.xcsoaringscoring.api.ApiResult
+import io.github.jgfyyvzss.xcsoaringscoring.api.Contest
+import io.github.jgfyyvzss.xcsoaringscoring.api.ContestClass
+import io.github.jgfyyvzss.xcsoaringscoring.api.DustDevilEntry
+import io.github.jgfyyvzss.xcsoaringscoring.api.DustDevilPilot
+import io.github.jgfyyvzss.xcsoaringscoring.api.SoaringScoringApi
+import io.github.jgfyyvzss.xcsoaringscoring.api.TaskRow
+import io.github.jgfyyvzss.xcsoaringscoring.api.UploadResult
+import io.github.jgfyyvzss.xcsoaringscoring.data.SettingsRepository
+import io.github.jgfyyvzss.xcsoaringscoring.storage.IgcFile
+import io.github.jgfyyvzss.xcsoaringscoring.storage.XcsoarFolderStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -383,6 +383,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * API key override is set. Sign-in must use the exact same key that started
      * the flow to redeem the code later, so it's restricted to the app's built-in
      * key only rather than risk a silent mismatch - see DEVELOPMENT.md.
+     *
+     * Also used for the "Refresh" action on an already-signed-in pilot: DustDevil's
+     * API has no lighter-weight way to re-fetch `entries` (see
+     * DustDevil_OAuth_reference.md), so picking up contest-side changes means
+     * re-running this same flow. `handleDustDevilRedirect()` doesn't clear the
+     * existing session first, so the old entries stay visible until the new ones
+     * arrive.
      */
     fun dustDevilSignInUrl(): String? {
         if (BuildConfig.SS_DUSTDEVIL_CLIENT_KEY_ID.isBlank()) return null
@@ -406,21 +413,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             )
             return
         }
+        val previousLocalPart = _uiState.value.dustDevilSelectedLocalPart
         viewModelScope.launch {
             // Must be the app's own built-in key - the same one whose client_key_id
             // started the flow. A personal override here would make the exchange
             // fail (indistinguishable from an expired/reused code).
             when (val result = api.exchangeDustDevilCode(code, BuildConfig.SS_API_KEY)) {
                 is ApiResult.Success -> {
-                    val firstLocalPart = result.data.entries.firstOrNull()?.localPart
+                    val entries = result.data.entries
+                    // This path also runs for a "Refresh" from Settings (re-running sign-in
+                    // on an already-signed-in pilot to pick up DustDevil-side changes - there's
+                    // no lighter-weight refresh endpoint, see DustDevil_OAuth_reference.md).
+                    // Keep whichever entry was already selected if it's still present, rather
+                    // than silently jumping back to the first entry on every refresh.
+                    val selectedLocalPart = entries.find { it.localPart == previousLocalPart }?.localPart
+                        ?: entries.firstOrNull()?.localPart
                     settings.setDustDevilSession(result.data)
-                    firstLocalPart?.let { settings.setDustDevilSelectedLocalPart(it) }
+                    selectedLocalPart?.let { settings.setDustDevilSelectedLocalPart(it) }
                     _uiState.value = _uiState.value.copy(
                         dustDevilSignInInProgress = false,
                         dustDevilError = null,
                         dustDevilPilot = result.data.pilot,
-                        dustDevilEntries = result.data.entries,
-                        dustDevilSelectedLocalPart = firstLocalPart
+                        dustDevilEntries = entries,
+                        dustDevilSelectedLocalPart = selectedLocalPart
                     )
                 }
                 is ApiResult.Failure -> _uiState.value = _uiState.value.copy(

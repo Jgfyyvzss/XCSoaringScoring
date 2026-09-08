@@ -1,6 +1,7 @@
-package com.soaringscoring.xcsoaringscoring.api
+package io.github.jgfyyvzss.xcsoaringscoring.api
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class Contest(
@@ -76,7 +77,11 @@ data class UploadResult(
     val sha256Hex: String,
     val byteLength: Long,
     val validationOk: Boolean,
-    val validationIssues: List<String> = emptyList(),
+    // Untyped: the server sends issue objects (shape unconfirmed - not documented
+    // anywhere we have), not plain strings. A previous `List<String>` here threw
+    // "Expected beginning of the string but got {" on the first real validation
+    // failure. See UploadScreen's formatValidationIssue() for display.
+    val validationIssues: List<JsonElement> = emptyList(),
     val taskMongoId: String? = null,
     val originalFilename: String? = null
 )

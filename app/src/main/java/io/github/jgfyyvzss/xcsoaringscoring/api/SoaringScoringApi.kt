@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.api
+package io.github.jgfyyvzss.xcsoaringscoring.api
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,7 +30,7 @@ class SoaringScoringApi(
         // contests (walks every day/class/handicap), so give it more room.
         .readTimeout(45, TimeUnit.SECONDS)
         .apply {
-            if (com.soaringscoring.xcsoaringscoring.BuildConfig.DEBUG) {
+            if (io.github.jgfyyvzss.xcsoaringscoring.BuildConfig.DEBUG) {
                 // Debug builds only — prints request/response headers (including
                 // the Authorization header) to Logcat under the "OkHttp" tag, so
                 // we can see exactly what's being sent while troubleshooting.

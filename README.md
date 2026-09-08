@@ -50,7 +50,7 @@ Functional.
 ## Project layout
 
 ```
-app/src/main/java/com/soaringscoring/xcsoaringscoring/
+app/src/main/java/io/github/jgfyyvzss/xcsoaringscoring/
   api/                  OkHttp client + data models for the Public API
   data/SettingsRepository.kt   DataStore: API key, last contest, saved folder tree URI
   storage/XcsoarFolderStore.kt SAF folder scan + file write

@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.ui.screens
+package io.github.jgfyyvzss.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -18,10 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.xcsoaringscoring.api.DustDevilEntry
-import com.soaringscoring.xcsoaringscoring.storage.IgcFile
-import com.soaringscoring.xcsoaringscoring.ui.AppUiState
-import com.soaringscoring.xcsoaringscoring.ui.UploadOutcome
+import io.github.jgfyyvzss.xcsoaringscoring.api.DustDevilEntry
+import io.github.jgfyyvzss.xcsoaringscoring.storage.IgcFile
+import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
+import io.github.jgfyyvzss.xcsoaringscoring.ui.UploadOutcome
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.text.DateFormat
 import java.util.Date
 
@@ -211,7 +215,7 @@ private fun UploadOutcomeDialog(outcome: UploadOutcome, onDismiss: () -> Unit) {
                         Text("Flight uploaded, but validation found issues:")
                         Spacer(Modifier.height(8.dp))
                         outcome.result.validationIssues.forEach { issue ->
-                            Text("• $issue", style = MaterialTheme.typography.bodySmall)
+                            Text("• ${formatValidationIssue(issue)}", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -232,4 +236,18 @@ private fun UploadOutcomeDialog(outcome: UploadOutcome, onDismiss: () -> Unit) {
             confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
         )
     }
+}
+
+/**
+ * The server's `validationIssues` entries aren't documented anywhere we have
+ * a copy of, so this doesn't assume a fixed shape: prefers a `message` field
+ * if the issue is an object (falling back to `code`), and otherwise just
+ * reads it as a plain string/number - either way something readable comes
+ * out rather than a parse crash.
+ */
+private fun formatValidationIssue(issue: JsonElement): String {
+    val obj = issue as? JsonObject ?: return issue.jsonPrimitive.content
+    return obj["message"]?.jsonPrimitive?.content
+        ?: obj["code"]?.jsonPrimitive?.content
+        ?: obj.toString()
 }

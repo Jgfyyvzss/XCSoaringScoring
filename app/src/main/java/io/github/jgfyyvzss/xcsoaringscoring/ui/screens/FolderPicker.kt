@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.ui.screens
+package io.github.jgfyyvzss.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,8 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.xcsoaringscoring.ui.AppUiState
-import com.soaringscoring.xcsoaringscoring.ui.TargetFolder
+import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
+import io.github.jgfyyvzss.xcsoaringscoring.ui.TargetFolder
 
 /**
  * One-time permission grant for the Android/media folder. Belongs in Settings -

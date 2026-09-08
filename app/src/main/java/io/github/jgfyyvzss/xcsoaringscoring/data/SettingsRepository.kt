@@ -1,11 +1,11 @@
-package com.soaringscoring.xcsoaringscoring.data
+package io.github.jgfyyvzss.xcsoaringscoring.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.soaringscoring.xcsoaringscoring.api.DustDevilExchangeResponse
+import io.github.jgfyyvzss.xcsoaringscoring.api.DustDevilExchangeResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json

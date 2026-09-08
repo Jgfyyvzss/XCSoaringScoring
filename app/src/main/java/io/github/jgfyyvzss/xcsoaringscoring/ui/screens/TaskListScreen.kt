@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.ui.screens
+package io.github.jgfyyvzss.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,14 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.xcsoaringscoring.api.Contest
-import com.soaringscoring.xcsoaringscoring.api.ContestClass
-import com.soaringscoring.xcsoaringscoring.api.TaskRow
-import com.soaringscoring.xcsoaringscoring.ui.AppUiState
-import com.soaringscoring.xcsoaringscoring.ui.ContestGrouping
-import com.soaringscoring.xcsoaringscoring.ui.ContestTimeFrame
-import com.soaringscoring.xcsoaringscoring.ui.TaskFiltering
-import com.soaringscoring.xcsoaringscoring.util.dateOnly
+import io.github.jgfyyvzss.xcsoaringscoring.api.Contest
+import io.github.jgfyyvzss.xcsoaringscoring.api.ContestClass
+import io.github.jgfyyvzss.xcsoaringscoring.api.TaskRow
+import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
+import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestGrouping
+import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestTimeFrame
+import io.github.jgfyyvzss.xcsoaringscoring.ui.TaskFiltering
+import io.github.jgfyyvzss.xcsoaringscoring.util.dateOnly
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

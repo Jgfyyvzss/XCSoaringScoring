@@ -1,9 +1,9 @@
-package com.soaringscoring.xcsoaringscoring.ui
+package io.github.jgfyyvzss.xcsoaringscoring.ui
 
-import com.soaringscoring.xcsoaringscoring.api.Contest
-import com.soaringscoring.xcsoaringscoring.api.ContestClass
-import com.soaringscoring.xcsoaringscoring.api.TaskRow
-import com.soaringscoring.xcsoaringscoring.util.dateOnly
+import io.github.jgfyyvzss.xcsoaringscoring.api.Contest
+import io.github.jgfyyvzss.xcsoaringscoring.api.ContestClass
+import io.github.jgfyyvzss.xcsoaringscoring.api.TaskRow
+import io.github.jgfyyvzss.xcsoaringscoring.util.dateOnly
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale

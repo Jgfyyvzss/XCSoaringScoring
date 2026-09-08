@@ -1,4 +1,4 @@
-package com.soaringscoring.xcsoaringscoring.ui.screens
+package io.github.jgfyyvzss.xcsoaringscoring.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,9 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.soaringscoring.xcsoaringscoring.BuildConfig
-import com.soaringscoring.xcsoaringscoring.ui.AppUiState
+import io.github.jgfyyvzss.xcsoaringscoring.BuildConfig
+import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,6 +144,15 @@ fun SettingsScreen(
                     Text("Save")
                 }
             }
+            HorizontalDivider()
+
+            Text(
+                "Version ${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            )
         }
     }
 
@@ -189,8 +199,19 @@ private fun DustDevilSignInSetting(
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                TextButton(onClick = onSignOut, modifier = Modifier.align(Alignment.End)) {
-                    Text("Sign out")
+                if (state.dustDevilSignInInProgress) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Refreshing…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = onCancelSignIn) { Text("Cancel") }
+                } else {
+                    Row(Modifier.align(Alignment.End)) {
+                        TextButton(onClick = onStartSignIn) { Text("Refresh") }
+                        TextButton(onClick = onSignOut) { Text("Sign out") }
+                    }
                 }
             }
             BuildConfig.SS_DUSTDEVIL_CLIENT_KEY_ID.isBlank() -> Text(
