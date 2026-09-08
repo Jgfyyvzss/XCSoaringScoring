@@ -23,6 +23,7 @@ import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
 import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestGrouping
 import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestTimeFrame
 import io.github.jgfyyvzss.xcsoaringscoring.ui.TaskFiltering
+import io.github.jgfyyvzss.xcsoaringscoring.ui.TaskGroup
 import io.github.jgfyyvzss.xcsoaringscoring.util.dateOnly
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,7 +33,7 @@ fun TaskListScreen(
     state: AppUiState,
     onBack: () -> Unit,
     onSelectClass: (ContestClass) -> Unit,
-    onDownload: (TaskRow) -> Unit,
+    onDownloadGroup: (TaskGroup) -> Unit,
     onDownloadWaypoints: () -> Unit,
     onDismissStatus: () -> Unit
 ) {
@@ -75,7 +76,7 @@ fun TaskListScreen(
             HorizontalDivider()
 
             val timeFrame = ContestGrouping.categorize(contest)
-            val visibleTasks = TaskFiltering.visibleTasks(state.tasks, state.selectedClass, timeFrame)
+            val taskGroups = TaskFiltering.groupedVisibleTasks(state.tasks, state.selectedClass, timeFrame)
 
             when {
                 state.tasksLoading || state.classesLoading -> Box(Modifier.fillMaxSize()) {
@@ -95,7 +96,7 @@ fun TaskListScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-                visibleTasks.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp)) {
+                taskGroups.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp)) {
                     Text(
                         emptyTasksMessage(timeFrame),
                         modifier = Modifier.align(Alignment.Center),
@@ -106,11 +107,11 @@ fun TaskListScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(visibleTasks) { task ->
-                        TaskCard(
-                            task = task,
-                            isDownloading = state.downloadingTaskId == task.taskId,
-                            onDownload = { onDownload(task) }
+                    items(taskGroups) { group ->
+                        TaskGroupCard(
+                            group = group,
+                            isDownloading = state.downloadingGroupKey == group.key,
+                            onDownload = { onDownloadGroup(group) }
                         )
                     }
                 }
@@ -159,8 +160,16 @@ private fun SelectedFoldersSummary(state: AppUiState) {
     }
 }
 
+/**
+ * One card per day/class(/handicap) slot, not per task row - a slot can have several
+ * candidate tasks (alternates) published before one is made official. Downloading
+ * grabs every candidate in [group], not just whichever one is shown here - see
+ * docs/FEATURE-check-updated-task.md.
+ */
 @Composable
-private fun TaskCard(task: TaskRow, isDownloading: Boolean, onDownload: () -> Unit) {
+private fun TaskGroupCard(group: TaskGroup, isDownloading: Boolean, onDownload: () -> Unit) {
+    val official = group.variants.firstOrNull { it.isOfficialTask }
+    val primary = official ?: group.variants.first()
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(16.dp).fillMaxWidth(),
@@ -168,15 +177,21 @@ private fun TaskCard(task: TaskRow, isDownloading: Boolean, onDownload: () -> Un
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Day ${task.dayNumber} — ${task.className ?: task.displayLabel}",
+                    "Day ${primary.dayNumber} — ${primary.className ?: primary.displayLabel}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(4.dp))
                 val extra = buildString {
-                    append(dateOnly(task.date))
-                    if (task.isOfficialTask) append(" · official")
-                    task.dhtHandicap?.let { append(" · handicap $it") }
+                    append(dateOnly(primary.date))
+                    primary.dhtHandicap?.let { append(" · handicap $it") }
+                    append(
+                        when {
+                            official != null -> " · official confirmed"
+                            group.variants.size > 1 -> " · ${group.variants.size} candidates - not yet decided"
+                            else -> " · not yet official"
+                        }
+                    )
                 }
                 Text(extra, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

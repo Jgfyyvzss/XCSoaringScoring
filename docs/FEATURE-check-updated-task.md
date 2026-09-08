@@ -1,5 +1,12 @@
 # Feature: Task alternates + quick official-task check
 
+**Status: implemented on the `TaskAlternates` branch (branched from `main`,
+independent of the `OAuth` branch).** Everything below was built as
+specified; the two filename/copy items originally left open are now resolved
+inline where they're discussed, and the two genuinely open design questions
+(manual reset, variant pruning) are called out at the bottom as still
+unbuilt, not oversights.
+
 Supersedes the original `FEATURE-check-updated-task.md` draft. Scope grew
 during review: SoaringScoring publishes alternate tasks *before* one is
 flagged official ("Published tasks — including alternates — are available
@@ -81,19 +88,27 @@ waypoints do (`fileNameFromResponse()` already exists in
 `SoaringScoringApi.kt` and works for any download, it's just unused for
 tasks today). New policy, applied to every variant in a group:
 
-1. Save under the **retained original filename** from the server. This
-   replaces `soaringscoring_task.tsk` outright - a generic name can't
-   distinguish alternate A from alternate B, but real published filenames
-   presumably can.
+1. Save under the **retained original filename** from the server (falling
+   back to `soaringscoring_task.tsk` if the server supplies none). This
+   replaces the old hardcoded `soaringscoring_task.tsk`-for-everything
+   naming - a generic name can't distinguish alternate A from alternate B.
 2. If that specific variant is `isOfficialTask == true`, **additionally**
    write the same bytes to `default.tsk`.
-3. **Collision safety net**: if the server doesn't supply a distinguishing
-   filename for two variants in the same batch (missing/generic
-   `Content-Disposition`), the existing URL-last-segment fallback could
-   collide in a way it never could before when a download was always exactly
-   one file. When falling back and the group has more than one variant,
-   suffix the fallback name with a short slice of `taskId` so a collision is
-   structurally impossible.
+3. **Superseded (2026-09-08) - TEMPORARY taskId-stub workaround, not just a
+   collision safety net.** Originally scoped as a fallback for when the
+   server supplies no filename at all. In practice, SoaringScoring's tasks
+   endpoint returns the *same* `displayLabel` for every alternate on a day,
+   with no other human-distinguishable field - raised with the SS dev, not
+   yet resolved - and there's no guarantee the server's own download
+   filename is any more distinguishing, since it may well be derived from
+   that same label. Until the dev fixes this, **every** saved task filename
+   gets a taskId stub appended, unconditionally - not just when multiple
+   variants are downloaded together. Implemented in
+   `AppViewModel.taskFileName()`: inserts `_${taskId.takeLast(8)}` before
+   the extension (or appends it if there isn't one). **Revert this once the
+   SS dev resolves the underlying labeling issue** - at that point go back
+   to trusting the server's filename outright, matching the waypoint
+   pattern.
 
 ## `storage/XcsoarFolderStore.kt` changes
 
@@ -234,6 +249,36 @@ confirmation; `Error` -> error dialog.
 Wire `onDownloadGroup`, `onCheckForUpdate`, `onConfirmUpdatedDownload`,
 `onDismissUpdateOutcome` into the existing composable calls.
 
+## Download-all-alternates toggle (added 2026-09-08)
+
+Resolves the "should this be optional" open item raised during the original
+review. **Set-before-use-and-retain, by explicit design** - a pilot picks
+this once before an event and leaves it; changing mid-comp is their call,
+the app makes no attempt to handle that gracefully.
+
+- **Persistence**: `SettingsRepository.downloadAllAlternates: Flow<Boolean>`
+  (default `true`), `setDownloadAllAlternates()`.
+- **State**: `AppUiState.downloadAllAlternates`, loaded in `init` alongside
+  everything else.
+- **Effect on download**: `AppViewModel.downloadTaskGroup()` narrows to
+  `group.variants.filter { it.isOfficialTask }` when the toggle is off -
+  *unless* nothing is flagged official yet, in which case there's nothing to
+  narrow to, so it falls back to downloading everything rather than
+  producing an empty result.
+- **Toggling always clears the stored Check record**
+  (`AppViewModel.setDownloadAllAlternates()` calls
+  `settings.clearLastDownloadedTaskGroup()` and clears
+  `AppUiState.lastDownloadedTaskGroup`), rather than leaving a record whose
+  `variants` list no longer reliably describes what's on disk under the new
+  setting. Clean and easy to explain, at the cost of the pilot needing to
+  re-download after flipping it - the in-app help text says so explicitly.
+- **UI**: `ContestListScreen.DownloadAllAlternatesToggle` - a single row,
+  label + `Switch`, placed right below the folder-selection checkboxes
+  (not in "Expert Features" - this affects everyday download behavior and
+  bandwidth footprint, not just power users). Label text is deliberately
+  terse: *"Download Official and Alternate tasks."* - the nuance lives in
+  the Settings help dialog, not the toggle row itself.
+
 ## Conventions to follow (unchanged from original spec)
 
 - No Retrofit, no new API surface beyond the existing `getTasks()` /
@@ -246,19 +291,20 @@ Wire `onDownloadGroup`, `onCheckForUpdate`, `onConfirmUpdatedDownload`,
 `GET /contests/:id/tasks` is documented as slow on large contests - don't
 add an aggressive client-side timeout on the Check flow's metadata call.
 
-## Open items for discussion
+## Open items - still genuinely unbuilt, not oversights
 
-1. Exact fallback-filename disambiguation format (taskId slice length,
-   separator) - cosmetic, fine to settle during implementation.
-2. Exact card/dialog copy for the new grouped UI and outcome set - cosmetic.
-3. No "forget last downloaded group" / manual reset action has been
-   specified (DustDevil sign-in has an equivalent "Sign out"). Worth
-   deciding whether pilots need a manual escape hatch, or whether it's
-   unnecessary since downloading any other group just overwrites the slot
-   naturally.
-4. `group.variants` is never pruned - if a later Check or download narrows
+1. No "forget last downloaded group" / manual reset action exists
+   (DustDevil sign-in has an equivalent "Sign out"). Worth deciding whether
+   pilots need a manual escape hatch, or whether it's unnecessary since
+   downloading any other group just overwrites the slot naturally.
+2. `group.variants` is never pruned - if a later Check or download narrows
    the candidate set (an alternate quietly withdrawn), stale entries just
    sit in the persisted record and in the Tasks folder. Harmless in
    practice (small JSON, and the earlier decision was explicitly not to
    auto-delete files from the pilot's XCSoar folder), but flagging so it's a
    deliberate non-goal rather than an oversight.
+
+(The filename-disambiguation format and card/dialog copy that were
+originally listed here as cosmetic open items are now resolved - see the
+"Implemented as" notes inline above and the actual UI code on the
+`TaskAlternates` branch.)

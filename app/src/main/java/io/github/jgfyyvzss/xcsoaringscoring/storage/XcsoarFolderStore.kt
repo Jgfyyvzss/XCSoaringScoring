@@ -77,6 +77,22 @@ object XcsoarFolderStore {
     ): Boolean = writeFile(context, xcsoarFolder, "waypoints", filename, bytes)
 
     /**
+     * Reads back a previously-written task file's bytes, or null if it can't be found
+     * or read. Used by the "check for updated task" flow to reuse an already-downloaded
+     * alternate's bytes instead of re-fetching over the network - a `findFile()` miss
+     * here (see the gotcha above) has a safe failure mode: the caller just falls back
+     * to a network download, same as "never seen this task before."
+     */
+    fun readTaskFile(context: Context, xcsoarFolder: DocumentFile, filename: String): ByteArray? {
+        val file = resolveSubfolderOrRoot(xcsoarFolder, "tasks").findFile(filename) ?: return null
+        return try {
+            context.contentResolver.openInputStream(file.uri)?.use { it.readBytes() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Lists .igc flight logs found in [xcsoarFolder]'s "logs" subfolder (recent
      * XCSoar versions; case-insensitive same as tasks/waypoints), falling back to
      * the folder's root if there's no such subfolder. Read-only - never creates
