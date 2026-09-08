@@ -60,6 +60,17 @@ fun SettingsScreen(
             MediaFolderAccessSetting(state, onChooseMediaFolder)
             HorizontalDivider()
 
+            DustDevilSignInSetting(
+                state = state,
+                onStartSignIn = onStartDustDevilSignIn,
+                onCancelSignIn = onCancelDustDevilSignIn,
+                onSignOut = onSignOutDustDevil,
+                onDismissError = onDismissDustDevilError
+            )
+            HorizontalDivider()
+
+            // Expert/override fields live at the bottom - most people will never
+            // need to open them, so they shouldn't compete with sign-in for attention.
             Column(Modifier.padding(16.dp)) {
                 Text(
                     "Expert feature: Not required",
@@ -89,20 +100,12 @@ fun SettingsScreen(
             }
             HorizontalDivider()
 
-            DustDevilSignInSetting(
-                state = state,
-                onStartSignIn = onStartDustDevilSignIn,
-                onCancelSignIn = onCancelDustDevilSignIn,
-                onSignOut = onSignOutDustDevil,
-                onDismissError = onDismissDustDevilError
-            )
-            HorizontalDivider()
-
             Column(Modifier.padding(16.dp)) {
                 Text("Flight upload", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Expert feature: Not required.",
+                    "Expert feature: Not required. Entry address below is still needed unless " +
+                        "you've signed in above.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
@@ -191,7 +194,7 @@ private fun DustDevilSignInSetting(
                 style = MaterialTheme.typography.bodySmall
             )
             state.personalKeyOverride.isNotBlank() -> Text(
-                "Unavailable while a personal API key override is set above - clear it to sign " +
+                "Unavailable while a personal API key override is set below - clear it to sign " +
                     "in, or keep using the manual fields below.",
                 style = MaterialTheme.typography.bodySmall
             )
