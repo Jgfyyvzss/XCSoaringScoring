@@ -1,6 +1,7 @@
 package com.soaringscoring.xcsoaringscoring.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -51,6 +52,7 @@ class SettingsRepository(private val context: Context) {
         val DUSTDEVIL_SESSION_JSON = stringPreferencesKey("dustdevil_session_json")
         val DUSTDEVIL_SELECTED_LOCAL_PART = stringPreferencesKey("dustdevil_selected_local_part")
         val LAST_DOWNLOADED_TASK_GROUP_JSON = stringPreferencesKey("last_downloaded_task_group_json")
+        val DOWNLOAD_ALL_ALTERNATES = booleanPreferencesKey("download_all_alternates")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -87,6 +89,15 @@ class SettingsRepository(private val context: Context) {
             }
         }
     }
+
+    /**
+     * Set-before-use-and-retain: whether a drill-down download grabs every candidate
+     * task for a day or just the one flagged official. Defaults to `true` (download
+     * everything) since that's the richer, connectivity-resilient behavior - see
+     * docs/FEATURE-check-updated-task.md and CLAUDE.md gotcha 15.
+     */
+    val downloadAllAlternates: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.DOWNLOAD_ALL_ALTERNATES] ?: true }
 
     suspend fun setApiKey(value: String) {
         context.dataStore.edit { it[Keys.API_KEY] = value }
@@ -127,5 +138,18 @@ class SettingsRepository(private val context: Context) {
     suspend fun setLastDownloadedTaskGroup(group: LastDownloadedTaskGroup) {
         val encoded = json.encodeToString(LastDownloadedTaskGroup.serializer(), group)
         context.dataStore.edit { it[Keys.LAST_DOWNLOADED_TASK_GROUP_JSON] = encoded }
+    }
+
+    /**
+     * Called whenever `downloadAllAlternates` changes - the stored record no longer
+     * reliably describes what's on disk under the new setting, so it's cleared
+     * outright rather than left stale. See CLAUDE.md gotcha 15.
+     */
+    suspend fun clearLastDownloadedTaskGroup() {
+        context.dataStore.edit { it.remove(Keys.LAST_DOWNLOADED_TASK_GROUP_JSON) }
+    }
+
+    suspend fun setDownloadAllAlternates(value: Boolean) {
+        context.dataStore.edit { it[Keys.DOWNLOAD_ALL_ALTERNATES] = value }
     }
 }

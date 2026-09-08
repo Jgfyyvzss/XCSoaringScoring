@@ -72,6 +72,8 @@ data class AppUiState(
     val lastDownloadedTaskGroup: LastDownloadedTaskGroup? = null,
     val checkingForUpdate: Boolean = false,
     val updateCheckOutcome: UpdateCheckOutcome? = null,
+    // Set-before-use-and-retain - see setDownloadAllAlternates().
+    val downloadAllAlternates: Boolean = true,
 
     // --- Flight upload ---
     val uploadApiKey: String = "",
@@ -112,6 +114,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val dustDevilSelectedLocalPart = settings.dustDevilSelectedLocalPart.first()
                 ?: dustDevilSession?.entries?.firstOrNull()?.localPart
             val lastDownloadedTaskGroup = settings.lastDownloadedTaskGroup.first()
+            val downloadAllAlternates = settings.downloadAllAlternates.first()
             _uiState.value = _uiState.value.copy(
                 apiKey = effectiveKey,
                 personalKeyOverride = savedKey,
@@ -119,6 +122,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 uploadApiKey = uploadKey,
                 entryAddress = address,
                 lastDownloadedTaskGroup = lastDownloadedTaskGroup,
+                downloadAllAlternates = downloadAllAlternates,
                 dustDevilPilot = dustDevilSession?.pilot,
                 dustDevilEntries = dustDevilSession?.entries ?: emptyList(),
                 dustDevilSelectedLocalPart = dustDevilSelectedLocalPart
@@ -274,13 +278,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Set-before-use-and-retain, by design: a pilot picks this once before an event
+     * and leaves it - changing mid-comp is their call, not something this app tries
+     * to handle gracefully. What it *does* guarantee is a clean, explainable state
+     * either way: flipping this always clears the stored "last downloaded" Check
+     * record, since that record's `variants` list would otherwise no longer reliably
+     * describe what's actually on disk under the new setting. See
+     * docs/FEATURE-check-updated-task.md and CLAUDE.md gotcha 15.
+     */
+    fun setDownloadAllAlternates(value: Boolean) {
+        _uiState.value = _uiState.value.copy(downloadAllAlternates = value, lastDownloadedTaskGroup = null)
+        viewModelScope.launch {
+            settings.setDownloadAllAlternates(value)
+            settings.clearLastDownloadedTaskGroup()
+        }
+    }
+
     // --- Download ---
 
     /**
-     * Downloads every candidate task in [group] (not just one) - SoaringScoring
-     * publishes alternates before a day's task is made official, so a drill-down
-     * download grabs all of them onto the device; only the one flagged
-     * `isOfficialTask` (if any) also becomes `default.tsk`. See
+     * Downloads every candidate task in [group] by default (not just one) -
+     * SoaringScoring publishes alternates before a day's task is made official, so a
+     * drill-down download grabs all of them onto the device; only the one flagged
+     * `isOfficialTask` (if any) also becomes `default.tsk`. Narrows to just the
+     * official task instead when `downloadAllAlternates` is off (unless none is
+     * flagged official yet, in which case there's nothing to narrow to). See
      * docs/FEATURE-check-updated-task.md.
      */
     fun downloadTaskGroup(group: TaskGroup) {
@@ -302,14 +325,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(downloadingGroupKey = group.key, statusMessage = null)
 
+            // downloadAllAlternates = false narrows to just the official task - but if
+            // nothing's flagged official yet (the day hasn't firmed up), there's nothing
+            // to narrow to, so fall back to everything rather than download nothing.
+            val officialOnly = group.variants.filter { it.isOfficialTask }
+            val toDownload = if (state.downloadAllAlternates || officialOnly.isEmpty()) group.variants else officialOnly
+
             val downloadedVariants = mutableListOf<DownloadedTaskVariant>()
             var failureMessage: String? = null
-            // Only disambiguate the fallback filename when there's more than one
-            // variant in play - a single-task download never had a collision risk.
-            val disambiguateFallback = group.variants.size > 1
 
-            group.variants.forEach { task ->
-                val result = downloadAndWriteVariant(task, selectedFolders, key, disambiguateFallback)
+            toDownload.forEach { task ->
+                val result = downloadAndWriteVariant(task, selectedFolders, key)
                 result.variant?.let { downloadedVariants += it }
                 result.failureMessage?.let { failureMessage = it }
             }
@@ -351,13 +377,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun downloadAndWriteVariant(
         task: TaskRow,
         selectedFolders: List<TargetFolder>,
-        apiKey: String,
-        disambiguateFallback: Boolean
+        apiKey: String
     ): VariantWriteResult {
         return when (val result = api.downloadTaskFile(task.files.xcsoarTsk, apiKey)) {
             is ApiResult.Success -> {
-                val fileName = result.data.fileName?.takeIf { it.isNotBlank() }
-                    ?: fallbackTaskFileName(task.taskId, disambiguateFallback)
+                val fileName = taskFileName(result.data.fileName, task.taskId)
                 var okCount = 0
                 selectedFolders.forEach { folder ->
                     val savedNamed = XcsoarFolderStore.writeTaskFile(
@@ -378,13 +402,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Only used when the server doesn't supply a filename at all. Suffixed with part
-     * of the taskId whenever more than one variant is being saved at once, so two
-     * alternates can never collide on the same generic name - something that could
-     * never happen before a download was always exactly one file.
+     * TEMPORARY WORKAROUND (see CLAUDE.md / DEVELOPMENT.md) - raised with the
+     * SoaringScoring dev, not yet resolved on their end: the tasks endpoint
+     * currently returns the same `displayLabel` for every alternate on a day, with
+     * no other human-distinguishable field, so there's no way to tell task A from
+     * task B by name alone - and no guarantee the server's own download filename
+     * (when it supplies one) is any more distinguishing, since it may well be
+     * derived from that same label. Until the dev resolves this, every saved task
+     * filename gets a taskId stub appended - unconditionally, not just when
+     * multiple variants are downloaded together - so files are always
+     * distinguishable in the Tasks folder regardless of what the server names them.
+     * Revert to trusting the server's filename outright once this is fixed upstream.
      */
-    private fun fallbackTaskFileName(taskId: String, disambiguate: Boolean): String =
-        if (disambiguate) "soaringscoring_task_${taskId.takeLast(8)}.tsk" else "soaringscoring_task.tsk"
+    private fun taskFileName(serverFileName: String?, taskId: String): String {
+        val base = serverFileName?.takeIf { it.isNotBlank() } ?: "soaringscoring_task.tsk"
+        val stub = taskId.takeLast(8)
+        val dotIndex = base.lastIndexOf('.')
+        return if (dotIndex > 0) "${base.substring(0, dotIndex)}_$stub${base.substring(dotIndex)}" else "${base}_$stub"
+    }
 
     /**
      * Resolves "what is the current official task for the last thing I downloaded,"
@@ -461,7 +496,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(checkingForUpdate = true)
-            val result = downloadAndWriteVariant(task, selectedFolders, key, disambiguateFallback = false)
+            val result = downloadAndWriteVariant(task, selectedFolders, key)
             if (result.variant != null) {
                 val updatedGroup = group.copy(
                     variants = group.variants.filterNot { it.taskId == result.variant.taskId } + result.variant,

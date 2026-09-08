@@ -234,6 +234,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         "On the home screen, tick which app(s) to save into (XCSoar and/or XCSoar Jet).",
         "Pick your contest, then your class (and handicap, if the day uses one).",
         "Downloading a task always overwrites the previous one - there's only ever one current task on the device.",
+        "Turning ON or OFF the Download Official and Alternate tasks toggle clears download history. You will need to re-download today's task(s) after toggling this. It is recommended that you set it before the start of an event and leave it until the end to avoid confusion.",
         "On day one, open the downloaded task in XCSoar's task manager yourself. After that, XCSoar loads the latest download automatically on startup - just download and go.",
         "Waypoints for the whole contest download once via the pin icon in the task list's top bar."
     )

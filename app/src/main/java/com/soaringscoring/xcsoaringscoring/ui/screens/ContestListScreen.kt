@@ -37,7 +37,8 @@ fun ContestListScreen(
     onSelectTimeFrame: (ContestTimeFrame) -> Unit,
     onCheckForUpdate: () -> Unit,
     onConfirmUpdatedDownload: (TaskRow) -> Unit,
-    onDismissUpdateOutcome: () -> Unit
+    onDismissUpdateOutcome: () -> Unit,
+    onToggleDownloadAllAlternates: (Boolean) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -56,6 +57,12 @@ fun ContestListScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             TargetFolderCheckboxes(state, onToggleFolder)
+            HorizontalDivider()
+
+            DownloadAllAlternatesToggle(
+                checked = state.downloadAllAlternates,
+                onToggle = onToggleDownloadAllAlternates
+            )
             HorizontalDivider()
 
             if (state.lastDownloadedTaskGroup != null) {
@@ -119,6 +126,27 @@ fun ContestListScreen(
             onConfirmDownload = onConfirmUpdatedDownload,
             onDismiss = onDismissUpdateOutcome
         )
+    }
+}
+
+/**
+ * Set-before-use-and-retain (see CLAUDE.md gotcha 15 / docs/FEATURE-check-updated-task.md) -
+ * pick this once before an event and leave it. Toggling clears the stored "last
+ * downloaded" Check record (handled in the ViewModel), so the help text tells pilots
+ * to expect a re-download of today's task after flipping it.
+ */
+@Composable
+private fun DownloadAllAlternatesToggle(checked: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Download Official and Alternate tasks.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(checked = checked, onCheckedChange = onToggle)
     }
 }
 

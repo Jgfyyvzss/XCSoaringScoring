@@ -99,7 +99,8 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                 onSelectTimeFrame = { viewModel.selectTimeFrame(it) },
                 onCheckForUpdate = { viewModel.checkForUpdatedTask() },
                 onConfirmUpdatedDownload = { viewModel.confirmUpdatedTaskDownload(it) },
-                onDismissUpdateOutcome = { viewModel.dismissUpdateCheckOutcome() }
+                onDismissUpdateOutcome = { viewModel.dismissUpdateCheckOutcome() },
+                onToggleDownloadAllAlternates = { viewModel.setDownloadAllAlternates(it) }
             )
         }
         composable("tasks") {

@@ -96,16 +96,26 @@ no ads, no trackers, no Google Play Services, every dependency is Apache 2.0
   `docs/FEATURE-check-updated-task.md` for the full design. Drill-down
   downloads now grab every candidate task for a day/class(/handicap), not
   just one - SoaringScoring publishes alternates before a task is made
-  official, potentially with none yet flagged - saving each under its
-  retained server filename and only writing the official one (if any) to
-  `default.tsk`. A "Check for updated task" card on the contest list
+  official, potentially with none yet flagged - saving each under a
+  filename built by `AppViewModel.taskFileName()` and only writing the
+  official one (if any) to `default.tsk`. **That filename always carries a
+  taskId stub as a temporary workaround (2026-09-08)** - SoaringScoring's
+  tasks endpoint returns the same `displayLabel` for every alternate on a
+  day, with no other way to tell task A from task B; raised with the SS
+  dev, revert to trusting the server's filename outright once fixed
+  upstream (see CLAUDE.md gotcha 15a). A "Check for updated task" card on
+  the contest list
   resolves the current official task with a single lightweight metadata
   call, reusing an already-downloaded alternate's bytes with **no network
   file transfer** when possible - matters most exactly when connectivity is
   worst (out at the launch vs. at the pilot briefing) - falling back to a
   fresh download only for a genuinely new task. `TaskListScreen` now renders
   one card per day/class/handicap slot (grouping several candidate rows),
-  not one per task row.
+  not one per task row. A **"Download Official and Alternate tasks" toggle**
+  on the contest list (2026-09-08, set-before-use-and-retain by design - see
+  `docs/FEATURE-check-updated-task.md`) lets a pilot narrow drill-down
+  downloads to just the official task; flipping it always clears the stored
+  Check record rather than risk it going stale.
 
 ## DustDevil.cloud sign-in (in progress - `OAuth` branch)
 
@@ -374,6 +384,12 @@ the manual path.
   and upload) are earmarked for removal once DustDevil sign-in has been
   tested for real, before release. Not done yet - see "Decisions locked in"
   above.
+- **Remove the taskId filename stub once SoaringScoring fixes task
+  labeling** - see the "Task alternates" feature history entry and CLAUDE.md
+  gotcha 15a. Currently every saved task file gets `_<taskId stub>` appended
+  because the tasks endpoint returns an identical `displayLabel` for every
+  alternate on a day; raised with the SS dev, blocked on their fix, not
+  something to resolve client-side.
 - **F-Droid submission** - blocked on the API-key distribution decision
   above, plus the usual F-Droid prerequisites (LICENSE file, committed
   Gradle wrapper, `fdroiddata` metadata PR).

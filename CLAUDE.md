@@ -166,13 +166,26 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
     SoaringScoring publishes alternate tasks before one is made official
     (see `docs/FEATURE-check-updated-task.md`), a drill-down download now
     grabs *every* candidate task for a day/class(/handicap) via
-    `downloadTaskGroup()`, saving each under its **retained original server
-    filename** (not a hardcoded `soaringscoring_task.tsk` - that name is
-    gone). Only the variant flagged `isOfficialTask` (if any) additionally
-    gets written to `default.tsk`. `TaskListScreen` renders one card per
-    day/class/handicap slot (`TaskGroup`), not one per task row - don't
-    reintroduce a per-row download action without also reintroducing this
-    grouping, or alternates will collide on write.
+    `downloadTaskGroup()`, saving each under a filename built by
+    `AppViewModel.taskFileName()` (not a hardcoded `soaringscoring_task.tsk`
+    - that name is gone). Only the variant flagged `isOfficialTask` (if any)
+    additionally gets written to `default.tsk`. `TaskListScreen` renders one
+    card per day/class/handicap slot (`TaskGroup`), not one per task row -
+    don't reintroduce a per-row download action without also reintroducing
+    this grouping, or alternates will collide on write.
+
+15a. **`taskFileName()` always appends a taskId stub - TEMPORARY, don't
+    remove without checking with the SoaringScoring dev first.**
+    SoaringScoring's tasks endpoint currently returns the same
+    `displayLabel` for every alternate on a day, with no other
+    human-distinguishable field, and there's no guarantee the server's own
+    download filename is any more unique (it may be derived from that same
+    label). Until the dev fixes this upstream, every saved task filename -
+    server-supplied or fallback, single download or a whole group - gets
+    `_<last 8 chars of taskId>` inserted before the extension. This is a
+    workaround for a live server bug, not a permanent design choice; once
+    fixed, this should go back to trusting the server's filename outright
+    (matching the waypoint download's existing, unmodified behavior).
 
 16. **The "check for updated task" flow prefers local files over the
     network, deliberately.** `checkForUpdatedTask()` only ever makes one
@@ -183,6 +196,16 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
     when connectivity is worst (a pilot out at the launch vs. at the pilot
     briefing) - don't "simplify" this into always re-downloading, that
     defeats the actual point of the feature.
+
+17. **`downloadAllAlternates` is set-before-use-and-retain, deliberately not
+    handled gracefully mid-comp.** Toggling it always clears the stored
+    `LastDownloadedTaskGroup` (`AppViewModel.setDownloadAllAlternates()`),
+    since the record's `variants` no longer reliably describes what's on
+    disk once the setting changes - don't try to reconcile/merge the old
+    record instead, the project owner explicitly chose "clear and force a
+    re-download" over any cleverer alternative. If nothing is flagged
+    official yet, `downloadTaskGroup()` downloads everything regardless of
+    this setting - there's nothing to narrow to.
 
 ## Conventions
 
