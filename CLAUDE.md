@@ -173,9 +173,12 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
 - Read `docs/DustDevil_OAuth_reference.md` before touching the DustDevil sign-in
   flow - it's the SoaringScoring dev's own reference doc, kept verbatim, and
   is the source of truth over any summary of it elsewhere in these files.
-  (Earlier versions of this file also referenced `SoaringSCoring_API.md` and
-  `SoaringScoringUpload_API.txt` for the Task Distribution/Flight Upload
-  APIs - those aren't actually in the repo; don't assume they exist.) The
-  live API has diverged from documented behavior at least twice before (auth
-  requirements on `/contests`/`/classes`, and Current/Past categorization for
-  same-day contests) - verify against real responses when in doubt.
+  `docs/FlightUpload_API_errors.md` has the Flight Upload endpoint's error
+  table (2026-09-09) - not the full API doc, just that one endpoint's error
+  contract. Earlier versions of this file also referenced a full
+  `SoaringSCoring_API.md` and `SoaringScoringUpload_API.txt` - those still
+  aren't in the repo beyond the error-table excerpt above; don't assume the
+  rest exists. The live API has diverged from documented behavior at least
+  twice before (auth requirements on `/contests`/`/classes`, and Current/Past
+  categorization for same-day contests) - verify against real responses when
+  in doubt.

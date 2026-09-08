@@ -561,19 +561,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 is ApiResult.Failure -> _uiState.value = _uiState.value.copy(
                     isUploading = false,
-                    uploadOutcome = UploadOutcome.Failure(describeUploadError(result))
+                    uploadOutcome = UploadOutcome.Failure(
+                        describeUploadError(result, addressFromSignIn = signedInEntry != null)
+                    )
                 )
             }
         }
     }
 
-    private fun describeUploadError(failure: ApiResult.Failure): String = when (failure.code) {
+    /**
+     * [addressFromSignIn] distinguishes the two address-related failures - telling a
+     * signed-in pilot to "check the competition number" is actively wrong advice
+     * when they never typed one; the localPart came from the exchange response.
+     * Full table: docs/FlightUpload_API_errors.md.
+     */
+    private fun describeUploadError(failure: ApiResult.Failure, addressFromSignIn: Boolean): String = when (failure.code) {
         "MISSING_API_KEY" -> "No upload API key set. Add one in Settings."
         "INVALID_API_KEY" -> "That upload API key is invalid or has been revoked."
         "INSUFFICIENT_SCOPE" -> "This key doesn't have the flights:write scope."
-        "INVALID_ADDRESS" -> "That entry address doesn't look right - check it against the pilot downloads page."
-        "ENTRY_NOT_FOUND" -> "No contest entry matches that address - check the competition number and contest key."
+        "INVALID_ADDRESS" -> if (addressFromSignIn)
+            "The entry address from your signed-in account doesn't look right - try signing out and back in."
+        else
+            "That entry address doesn't look right - check it against the pilot downloads page."
+        "ENTRY_NOT_FOUND" -> if (addressFromSignIn)
+            "No contest entry matches your signed-in account for this - it may not have synced " +
+                "to SoaringScoring yet, or try signing out and back in."
+        else
+            "No contest entry matches that address - check the competition number and contest key."
         "NO_OFFICIAL_TASK" -> "No official task is set yet for your class today."
+        "EMPTY_OR_UNREADABLE_BODY" -> "That file didn't upload correctly - no flight data was received. Try again."
+        "INTERNAL" -> "SoaringScoring had a server error - try again shortly."
         else -> failure.message
     }
 

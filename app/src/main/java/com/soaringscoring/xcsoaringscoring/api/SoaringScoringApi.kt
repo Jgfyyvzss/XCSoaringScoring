@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.jsonObject
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -127,8 +128,16 @@ class SoaringScoringApi(
     ): ApiResult<UploadResult> = withContext(Dispatchers.IO) {
         try {
             val body = igcBytes.toRequestBody("application/octet-stream".toMediaType())
+            // addPathSegment (not string interpolation) so localPart is safely
+            // percent-encoded as a path segment if it ever contains anything
+            // URL-unsafe. Deliberately not java.net.URLEncoder - that encodes for
+            // query strings (a space becomes "+", not the "%20" a path needs).
+            val url = "$baseUrl/entries".toHttpUrl().newBuilder()
+                .addPathSegment(localPart)
+                .addPathSegment("igc")
+                .build()
             val request = Request.Builder()
-                .url("$baseUrl/entries/$localPart/igc")
+                .url(url)
                 .header("Authorization", "Bearer $apiKey")
                 .header("X-Igc-Filename", filename)
                 .post(body)
