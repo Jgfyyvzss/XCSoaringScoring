@@ -102,8 +102,7 @@ fun SettingsScreen(
                 Text("Flight upload", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Expert feature: Not required. Your entry address must also be added below" +
-                        "for the contest, from SoaringScoring's pilot downloads page.",
+                    "Expert feature: Not required.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
