@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.soaringscoring.xcsoaringscoring",
+  "applicationId": "io.github.jgfyyvzss.xcsoaringscoring",
   "variantName": "release",
   "elements": [
     {
