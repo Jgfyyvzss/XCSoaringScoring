@@ -10,10 +10,11 @@ straight into XCSoar (and XCSoar Jet), so you don't have to download and copy a
 Same idea as XComps, just built native (Kotlin + Jetpack Compose) against SoaringScoring
 instead of SoaringSpot/GlideAndSeek.
 
-<img width="270" height="567" alt="xcssMain" src="https://github.com/user-attachments/assets/e9712963-d1e0-44fc-8319-e50c8155be1a" />
+<img width="270" height="567" alt="xcssMain" src="https://github.com/user-attachments/assets/219f04d3-e5c4-4a1f-9bb6-687fa0d1b099" />
 <img width="270" height="567" alt="XCSS_Tasks" src="https://github.com/user-attachments/assets/c0187e48-18e2-4b9d-aa14-aeb8352a756f" />
-<img width="270" height="567" alt="XCSS_Upload" src="https://github.com/user-attachments/assets/a21ce0c9-8b01-404d-800f-ce743305ea01" />
-<img width="270" height="567" alt="xcssSettings" src="https://github.com/user-attachments/assets/b0fe86a2-cf62-45de-92c4-830fcd71795a" />
+<img width="270" height="567" alt="xcssupload" src="https://github.com/user-attachments/assets/c220f312-4f0d-4f19-bef8-aeec16b23b63" />
+<img width="270" height="567" alt="xcssSettings" src="https://github.com/user-attachments/assets/3a0a154e-4476-42f3-acd1-9f687849d549" />
+
 
 
 
@@ -43,6 +44,7 @@ instead of SoaringSpot/GlideAndSeek.
    restarts (nothing is ticked by default — you choose explicitly).
 7. Events are split across 3 tabs Current, Future and Past so you can also
    download historical tasks and turnpoint files, perhaps for a bit of practise.
+8. Upload igc files for scoring.
 
 ## Status
 Functional.
