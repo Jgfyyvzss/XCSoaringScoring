@@ -25,7 +25,7 @@ download-and-copy routine during gliding competitions.
 ## Where things live
 
 ```
-app/src/main/java/com/soaringscoring/xcsoaringscoring/
+app/src/main/java/io/github/jgfyyvzss/xcsoaringscoring/
   api/              SoaringScoringApi.kt (OkHttp client), Models.kt (all @Serializable data classes)
   data/             SettingsRepository.kt - DataStore-backed settings (API
                      keys, entry address, media tree URI, which target
@@ -158,6 +158,21 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
     disruptive later. Don't assume a device with the old app still installed
     will "just update."
 
+15. **applicationId changed AGAIN (2026-09-08): `com.soaringscoring.xcsoaringscoring`
+    → `io.github.jgfyyvzss.xcsoaringscoring`.** Reason this time: the
+    `com.soaringscoring.*` prefix made the app look like an official
+    SoaringScoring product, which it isn't - this is an independent,
+    unaffiliated client of their public API. `io.github.<username>` is the
+    standard fallback reverse-DNS scheme for apps with no owned domain (also
+    F-Droid's recommended convention). Same disruption as gotcha 14 above -
+    another fresh install required, DataStore lost again - and same non-impact
+    on the DustDevil redirect scheme (still not derived from applicationId,
+    see gotcha 12). If the applicationId changes a third time, remember the
+    `proguard-rules.pro` keep rule and both README.md/CLAUDE.md's "Where
+    things live" ASCII paths use `/`-separated package paths, not
+    dotted ones - a dot-only find/replace across the repo will silently miss
+    them.
+
 ## Conventions
 
 - No Retrofit - plain OkHttp with manual `Request`/`Response` handling in
@@ -173,9 +188,12 @@ wrapper actually invokes Gradle 8.7 first (see Gotchas).
 - Read `docs/DustDevil_OAuth_reference.md` before touching the DustDevil sign-in
   flow - it's the SoaringScoring dev's own reference doc, kept verbatim, and
   is the source of truth over any summary of it elsewhere in these files.
-  (Earlier versions of this file also referenced `SoaringSCoring_API.md` and
-  `SoaringScoringUpload_API.txt` for the Task Distribution/Flight Upload
-  APIs - those aren't actually in the repo; don't assume they exist.) The
-  live API has diverged from documented behavior at least twice before (auth
-  requirements on `/contests`/`/classes`, and Current/Past categorization for
-  same-day contests) - verify against real responses when in doubt.
+  `docs/FlightUpload_API_errors.md` has the Flight Upload endpoint's error
+  table (2026-09-09) - not the full API doc, just that one endpoint's error
+  contract. Earlier versions of this file also referenced a full
+  `SoaringSCoring_API.md` and `SoaringScoringUpload_API.txt` - those still
+  aren't in the repo beyond the error-table excerpt above; don't assume the
+  rest exists. The live API has diverged from documented behavior at least
+  twice before (auth requirements on `/contests`/`/classes`, and Current/Past
+  categorization for same-day contests) - verify against real responses when
+  in doubt.

@@ -154,14 +154,18 @@ against DustDevil.
   two reasons: (1) it would have baked in `com.soaringscoring.taskloader`,
   the applicationId *at the time* - which was indeed renamed shortly after
   (2026-09-05, to `com.soaringscoring.xcsoaringscoring` - see "Project/display
-  name" below) precisely as anticipated, validating the decision to decouple
-  the two; a reverse-domain scheme would have needed re-registering with the
-  dev at that point, this one didn't; (2) a reverse-domain
-  scheme is meant to signal a domain *you* control, but our applicationId is
-  already borrowed from SoaringScoring's own name rather than a domain we
-  own, so the collision-resistance argument doesn't carry the usual weight
-  here and a domain-shaped string would arguably misrepresent ownership we
-  don't have. `xcsoaringscoring://oauth-callback` tracks the new product
+  name" below), and again later (2026-09-08, to
+  `io.github.jgfyyvzss.xcsoaringscoring` - see the same section) precisely as
+  anticipated, validating the decision to decouple the two; a reverse-domain
+  scheme would have needed re-registering with the dev at each of those
+  points, this one didn't; (2) a reverse-domain scheme is meant to signal a
+  domain *you* control, but our applicationId was, at the time, already
+  borrowed from SoaringScoring's own name rather than a domain we own, so the
+  collision-resistance argument didn't carry the usual weight and a
+  domain-shaped string would have arguably misrepresented ownership we didn't
+  have (the 2026-09-08 rename to `io.github.jgfyyvzss.*` has since resolved
+  that specific concern, but by then it no longer mattered for this
+  decision). `xcsoaringscoring://oauth-callback` tracks the new product
   name instead, is decoupled from whatever the applicationId ends up being,
   and the collision risk in practice is low for a scheme this specific to a
   niche gliding-competition app. On the custom-scheme interception risk that
@@ -378,3 +382,19 @@ the manual path.
   see CLAUDE.md gotcha 14. The DustDevil redirect scheme was deliberately
   chosen not to depend on this rename (see the sign-in section above) and
   needed no changes.
+- ~~**applicationId no longer looks like an official SoaringScoring
+  product**~~ - **Done (2026-09-08).** Second applicationId/namespace/Kotlin
+  package rename: `com.soaringscoring.xcsoaringscoring` →
+  `io.github.jgfyyvzss.xcsoaringscoring` - the `com.soaringscoring.*` prefix
+  read as if this were an official product of theirs rather than an
+  independent client of their public API. `io.github.<username>` is the
+  standard reverse-DNS fallback for apps without an owned domain. Same
+  fresh-install/DataStore-loss caveat as the 2026-09-05 rename (see CLAUDE.md
+  gotcha 15) and the same non-impact on the DustDevil redirect scheme. Files
+  touched: every `.kt` file's `package`/import lines (moved directory:
+  `app/src/main/java/com/soaringscoring/xcsoaringscoring/` →
+  `app/src/main/java/io/github/jgfyyvzss/xcsoaringscoring/`), `app/build.gradle.kts`
+  (`namespace`, `applicationId`), `app/proguard-rules.pro` keep rule, and the
+  "Where things live" ASCII paths in CLAUDE.md/README.md (these use `/`, not
+  `.`, so a dot-based find/replace misses them - caught this the hard way
+  while doing this rename).

@@ -4,7 +4,7 @@
 -keepclassmembers class kotlinx.serialization.json.** {
     *** Companion;
 }
--keepclasseswithmembers class com.soaringscoring.xcsoaringscoring.api.** {
+-keepclasseswithmembers class io.github.jgfyyvzss.xcsoaringscoring.api.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 

@@ -33,11 +33,11 @@ val oauthRedirectScheme = "xcsoaringscoring"
 val oauthRedirectHost = "oauth-callback"
 
 android {
-    namespace = "com.soaringscoring.xcsoaringscoring"
+    namespace = "io.github.jgfyyvzss.xcsoaringscoring"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.soaringscoring.xcsoaringscoring"
+        applicationId = "io.github.jgfyyvzss.xcsoaringscoring"
         minSdk = 26
         targetSdk = 34
         // Bump BOTH on every release you publish anywhere (GitHub, F-Droid, etc).
@@ -61,6 +61,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
