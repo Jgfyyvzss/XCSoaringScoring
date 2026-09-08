@@ -12,8 +12,8 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "0.3.0",
-      "outputFile": "XCSoaringScoring-0.3.0-release.apk"
+      "versionName": "0.5.0",
+      "outputFile": "XCSoaringScoring-0.5.0-release.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/XCSoaringScoring-0.3.0-release.dm"
+        "baselineProfiles/1/XCSoaringScoring-0.5.0-release.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/XCSoaringScoring-0.3.0-release.dm"
+        "baselineProfiles/0/XCSoaringScoring-0.5.0-release.dm"
       ]
     }
   ],

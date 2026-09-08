@@ -47,7 +47,7 @@ android {
         //   bump PATCH for a bugfix-only release, MINOR for new features, MAJOR for
         //   a big breaking change. Also feeds the friendly APK filename below.
         versionCode = 1
-        versionName = "0.4.0"
+        versionName = "0.5.0"
 
         buildConfigField("String", "SS_API_KEY", "\"$ssApiKey\"")
         buildConfigField("String", "SS_DUSTDEVIL_CLIENT_KEY_ID", "\"$ssDustDevilClientKeyId\"")
