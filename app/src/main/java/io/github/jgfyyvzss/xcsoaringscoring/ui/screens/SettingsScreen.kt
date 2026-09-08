@@ -261,13 +261,16 @@ private fun HelpDialog(onDismiss: () -> Unit) {
     val points = listOf(
         "Grant access to your device's Android/media folder first - a one-time step.",
         "Recommended - Sign in to your DustDevil/SoaringScoring account in Settings",
-        "On the home screen, tick which app(s) to save into and select igc from (XCSoar and/or XCSoar Jet).",
+        "On the home screen, tick which XCSoar app(s) to save into and to select igc from.",
+        "Toggle Also Alternates ON or OFF. Official tasks always download. If you select Also Alternates all alternate tasks (eg A, B, C) are also downloaded, allowing easy selection within XCSoar if needed.",
         "Pick your contest, then your class (and handicap, if the day uses one).",
         "Downloading an official task always overwrites the active default.tsk in XCSoar. Copies of all tasks (official and alternates) are saved to XCSoar in case you need to load them manually",
         "Turning ON or OFF the Download Official and Alternate tasks toggle clears download history. You will need to re-download today's task(s) after toggling this. It is recommended that you set it before the start of an event and leave it until the end to avoid confusion.",
+        "Once tasks have been downloaded a Check for updated task Button appears. Tapping this checks if the official task has been changed or selected. If XCSoar is running already use Task Manager to select the indicated task. If XCsoar is not running, it will load the new official task automatically."
         "Waypoints for the whole contest download once via the pin icon in the task list's top bar. You need to manually select the waypoint file in XCSoar - Configuration | File Locations",
         "Upload igc files for scoring with the document upload icon at the top of the main screen. Login to your account on the settings page first, usually once at the start of an event is enough.",
-        "If your current contest is not appearing for uploads try Refresh in Settings | Sign in with DustDevil/SoaringScoring"
+        "If your current contest is not appearing for uploads try Refresh in Settings | Sign in with DustDevil/SoaringScoring",
+        "! IT IS YOUR RESPONSIBILITY TO CONFIRM THE ACTIVE TASK IN XCSOAR IS THE CORRECT ONE !"
     )
     AlertDialog(
         onDismissRequest = onDismiss,

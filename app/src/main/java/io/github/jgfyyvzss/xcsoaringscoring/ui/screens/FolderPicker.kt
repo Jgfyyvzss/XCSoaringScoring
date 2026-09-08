@@ -33,9 +33,8 @@ fun MediaFolderAccessSetting(
         }
         if (state.mediaTreeUri == null) {
             Text(
-                "Grant access to the Android/media folder once — that's where XCSoar and " +
-                    "XCSoar Jet each keep their own Tasks folder. If you only have one " +
-                    "variant installed, picking that app's folder directly also works.",
+                "Grant access to the Android/media folder once. The app will find installed XCSoar and " +
+                    "XCSoar Jet etc.",
                 style = MaterialTheme.typography.bodySmall
             )
         } else {
@@ -67,7 +66,7 @@ fun TargetFolderCheckboxes(
         }
         when {
             state.mediaTreeUri == null -> Text(
-                "Grant folder access in Settings to choose which app(s) to save to.",
+                "Open Settings (Gear icon at top right) and grant folder access",
                 style = MaterialTheme.typography.bodySmall
             )
             state.targetFolders.isEmpty() -> Text(
