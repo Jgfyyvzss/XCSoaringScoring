@@ -2,20 +2,15 @@
 
 # XCSoaringScoring
 
-A small Android app largely based on [XComps](https://github.com/DanielDe8/xcomps) 
-that loads task files from [SoaringScoring](https://soaringscoring.com)'s Public API 
-straight into XCSoar (and XCSoar Jet), so you don't have to download and copy a 
-`.tsk` file by hand each contest day.
-
-Same idea as XComps, just built native (Kotlin + Jetpack Compose) against SoaringScoring
-instead of SoaringSpot/GlideAndSeek.
+A small Android app inspired by [XComps](https://github.com/DanielDe8/xcomps) 
+This simplifies Task, Waypoint and IGC file handling between [SoaringScoring](https://soaringscoring.com)'s and XCSoar (or forks such as XCSoar Jet).
+Browse Contests on SoaringSpot, select the Contest, Class and if required your Handicap. The Task file lands in your XCSoar 'tasks' folder and the Official task is written to the default XCSoar task. Start XCSoar and the Official task will be loaded and ready to fly.
+After your flight the app provides an Upload Flights screen where you can upload straight to SoaringScoring, with clear reporting of success or any issues encountered.
 
 <img width="270" height="567" alt="xcssMain" src="https://github.com/user-attachments/assets/219f04d3-e5c4-4a1f-9bb6-687fa0d1b099" />
 <img width="270" height="567" alt="XCSS_Tasks" src="https://github.com/user-attachments/assets/c0187e48-18e2-4b9d-aa14-aeb8352a756f" />
 <img width="270" height="567" alt="xcssupload" src="https://github.com/user-attachments/assets/c220f312-4f0d-4f19-bef8-aeec16b23b63" />
 <img width="270" height="567" alt="xcssSettings" src="https://github.com/user-attachments/assets/3a0a154e-4476-42f3-acd1-9f687849d549" />
-
-
 
 
 ## What it does

@@ -723,6 +723,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * One-off alternative to the ticked-folder scan above: lets a pilot browse to
+     * any folder (e.g. Downloads) and replaces `igcFiles` with whatever .igc files
+     * are found there, via the same `findIgcFiles()` used for XCSoar's own folders
+     * - its logs-subfolder-or-root fallback already does the right thing for a
+     * plain folder of files. Deliberately doesn't call
+     * `takePersistableUriPermission()` on the picked tree URI: this is a
+     * browse-once-for-this-visit action, not a folder the app should remember -
+     * leaving and re-entering the Upload screen re-runs `refreshIgcFiles()`
+     * (see its `LaunchedEffect` in `UploadScreen`) and reverts to the normal scan.
+     */
+    fun browseIgcFolder(treeUri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(igcFilesLoading = true)
+            val folder = DocumentFile.fromTreeUri(getApplication(), treeUri)
+            val found = withContext(Dispatchers.IO) {
+                folder?.let { XcsoarFolderStore.findIgcFiles(it) } ?: emptyList()
+            }
+            _uiState.value = _uiState.value.copy(
+                igcFiles = found.sortedByDescending { it.doc.lastModified() },
+                igcFilesLoading = false
+            )
+        }
+    }
+
     fun selectFileForUpload(file: IgcFile) {
         _uiState.value = _uiState.value.copy(pendingUploadFile = file)
     }

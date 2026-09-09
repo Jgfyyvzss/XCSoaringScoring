@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ fun UploadScreen(
     state: AppUiState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
+    onBrowseFolder: () -> Unit,
     onSelectFile: (IgcFile) -> Unit,
     onCancelPending: () -> Unit,
     onConfirmUpload: () -> Unit,
@@ -57,6 +59,11 @@ fun UploadScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onBrowseFolder) {
+                        Icon(Icons.Filled.FolderOpen, contentDescription = "Browse for a folder of .igc files")
                     }
                 }
             )
