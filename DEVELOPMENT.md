@@ -116,6 +116,23 @@ no ads, no trackers, no Google Play Services, every dependency is Apache 2.0
   `docs/FEATURE-check-updated-task.md`) lets a pilot narrow drill-down
   downloads to just the official task; flipping it always clears the stored
   Check record rather than risk it going stale.
+- **Browse for a folder of .igc files (2026-09-09, `Develop` branch)** - a
+  folder-open icon in the Upload Flight screen's top bar (`onBrowseFolder` in
+  `UploadScreen`), for flight logs that didn't land in an XCSoar folder (e.g.
+  Downloads, a synced folder). Deliberately scoped as part of the upload
+  process, not a separate feature: it's a one-off alternative source for the
+  same list, confirm dialog, and upload path already there, not a parallel
+  UI or data model. Picks a folder via `ActivityResultContracts.OpenDocumentTree()`
+  (same contract as the media-folder picker in Settings) and hands it to
+  `AppViewModel.browseIgcFolder()`, which replaces `igcFiles` with whatever
+  `XcsoarFolderStore.findIgcFiles()` finds there - reusing that function
+  as-is, since its logs-subfolder-or-root fallback (written for XCSoar's own
+  layout) already does the right thing for a plain folder of files. No new
+  permission is persisted (`takePersistableUriPermission()` is deliberately
+  not called) since this is a browse-once-for-this-visit action; leaving and
+  re-entering the screen re-runs the normal ticked-folder scan via its
+  existing `LaunchedEffect`, so the browsed view never needs explicit reset
+  logic.
 
 ## DustDevil.cloud sign-in (in progress - `OAuth` branch)
 

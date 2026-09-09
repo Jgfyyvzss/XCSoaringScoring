@@ -84,6 +84,16 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
         }
     }
 
+    // Lets a pilot browse to a one-off folder of .igc files outside XCSoar's own
+    // folders (e.g. Downloads) - read-only, not persisted (see browseIgcFolder()).
+    val igcFolderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.browseIgcFolder(uri)
+        }
+    }
+
     NavHost(navController = navController, startDestination = "contests") {
         composable("contests") {
             ContestListScreen(
@@ -149,6 +159,7 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                 state = state,
                 onBack = { navController.popBackStack() },
                 onRefresh = { viewModel.refreshIgcFiles() },
+                onBrowseFolder = { igcFolderPicker.launch(null) },
                 onSelectFile = { viewModel.selectFileForUpload(it) },
                 onCancelPending = { viewModel.cancelPendingUpload() },
                 onConfirmUpload = { viewModel.confirmUpload() },
