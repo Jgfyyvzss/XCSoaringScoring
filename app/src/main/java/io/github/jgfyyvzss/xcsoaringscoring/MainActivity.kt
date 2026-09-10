@@ -113,7 +113,8 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                     viewModel.openLastDownloadedGroup { navController.navigate("tasks") }
                 },
                 onClearLastDownloadedGroup = { viewModel.clearLastDownloadedGroup() },
-                onDismissStatus = { viewModel.clearStatusMessage() }
+                onDismissStatus = { viewModel.clearStatusMessage() },
+                onDismissFirstRunHelp = { viewModel.dismissFirstRunHelp() }
             )
         }
         composable("tasks") {

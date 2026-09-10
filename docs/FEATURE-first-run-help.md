@@ -1,5 +1,8 @@
 # Feature: First-run help, with explicit icon-annotated setup steps
 
+> **Status (2026-09-10): Built - see DEVELOPMENT.md's feature history for
+> the as-built details.** Kept here as the original spec for reference.
+
 ## Read this first - don't trust prior assumptions about the current code
 
 This project has moved across sessions/branches in ways not fully reflected

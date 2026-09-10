@@ -173,6 +173,41 @@ no ads, no trackers, no Google Play Services, every dependency is Apache 2.0
   see the roadmap entry above for why - as a cheaper way to test whether
   the daily re-entry friction is actually solved before committing to the
   bigger mechanism.
+- **First-run help dialog (2026-09-10, `Develop` branch)** - full spec in
+  `docs/FEATURE-first-run-help.md`, prompted by a real tester getting stuck
+  on the Android system folder picker's easy-to-miss "USE THIS FOLDER"
+  confirm button, not a hypothetical gap. Shows automatically once, on
+  first launch only (`SettingsRepository.hasSeenFirstRunHelp`, defaults
+  `false` so a genuinely fresh install shows it, never reset once true) -
+  triggered from `ContestListScreen` since that's the first screen a pilot
+  sees, deliberately not waiting on contest data or folder permissions
+  since the content depends on neither. Reuses the **exact same**
+  `HelpDialog` composable as the pre-existing manual Settings help icon
+  (dropped `private` so `ContestListScreen` can call it too, matching how
+  `MediaFolderAccessSetting`/`TargetFolderCheckboxes` already share across
+  screen files) rather than forking a second copy of the content - one
+  list to keep current, not two that could drift apart. The one behavioral difference
+  between the two triggers is deliberate: `HelpDialog` gained a `blocking`
+  parameter (`false` by default, preserving the manual trigger's existing
+  tap-outside-to-dismiss behavior unchanged, per the spec's explicit
+  "don't touch the manual trigger" scope) - the automatic first-run showing
+  passes `blocking = true`, disabling both tap-outside and back-press
+  dismissal via `DialogProperties`, per the spec's "dismissed only via an
+  explicit button" requirement.
+
+  Content changes beyond the trigger: the Android/media step is now split
+  into two bullets, with the specific confirm-button phrase bold via
+  `buildAnnotatedString`/`SpanStyle` - previously this whole step was one
+  generic line that never actually named the confirm-button trap, which is
+  the entire reason this feature exists. The waypoint-download and
+  IGC-upload bullets, which already referenced "the pin icon" / "the
+  document upload icon" in words, now render that real icon
+  (`Icons.Filled.Place` / `Icons.Filled.UploadFile` - matching what's
+  actually on screen on `TaskListScreen`/`ContestListScreen`) next to the
+  text instead of only describing it - deliberately not attempted for
+  Android's own system-UI confirm button, since there's no in-app icon to
+  reuse there and inventing one risks mismatching what a given device
+  actually shows.
 
 ## DustDevil.cloud sign-in (in progress - `OAuth` branch)
 
@@ -471,13 +506,6 @@ the manual path.
   problem than the recurring friction driving this discussion - it helps
   someone *discovering* a contest to enter, not someone *returning* to the
   one they're already in. Not planned.
-- **First-run help dialog - definite, not yet built.** Full spec in
-  `docs/FEATURE-first-run-help.md`. Shows automatically on first launch
-  only (persisted, never again after dismissal), explicitly walking through
-  the Android system folder-picker's easy-to-miss "USE THIS FOLDER" confirm
-  button - real tester confusion, not a hypothetical. Reuses the existing
-  `HelpDialog`/`showHelp` pattern in `SettingsScreen.kt` rather than
-  building a second dialog.
 - **Personal API key retirement** - both Settings override fields (general
   and upload) are earmarked for removal once DustDevil sign-in has been
   tested for real, before release. Not done yet - see "Decisions locked in"

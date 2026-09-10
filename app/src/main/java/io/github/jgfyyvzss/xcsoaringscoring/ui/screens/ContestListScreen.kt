@@ -39,7 +39,8 @@ fun ContestListScreen(
     onDismissUpdateOutcome: () -> Unit,
     onOpenLastDownloadedGroup: () -> Unit,
     onClearLastDownloadedGroup: () -> Unit,
-    onDismissStatus: () -> Unit
+    onDismissStatus: () -> Unit,
+    onDismissFirstRunHelp: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -134,6 +135,13 @@ fun ContestListScreen(
             onConfirmDownload = onConfirmUpdatedDownload,
             onDismiss = onDismissUpdateOutcome
         )
+    }
+
+    // First launch only (see docs/FEATURE-first-run-help.md) - persists once dismissed,
+    // never auto-appears again. Deliberately doesn't wait on contest data or folder
+    // permissions; the content depends on neither.
+    if (!state.hasSeenFirstRunHelp) {
+        HelpDialog(onDismiss = onDismissFirstRunHelp, blocking = true)
     }
 }
 
