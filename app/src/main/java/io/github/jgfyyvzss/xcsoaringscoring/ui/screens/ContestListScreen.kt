@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
@@ -21,7 +22,6 @@ import io.github.jgfyyvzss.xcsoaringscoring.api.TaskRow
 import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
 import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestGrouping
 import io.github.jgfyyvzss.xcsoaringscoring.ui.ContestTimeFrame
-import io.github.jgfyyvzss.xcsoaringscoring.ui.TargetFolder
 import io.github.jgfyyvzss.xcsoaringscoring.ui.UpdateCheckOutcome
 import io.github.jgfyyvzss.xcsoaringscoring.util.dateOnly
 
@@ -33,12 +33,13 @@ fun ContestListScreen(
     onSettingsClick: () -> Unit,
     onUploadClick: () -> Unit,
     onRetry: () -> Unit,
-    onToggleFolder: (TargetFolder) -> Unit,
     onSelectTimeFrame: (ContestTimeFrame) -> Unit,
     onCheckForUpdate: () -> Unit,
     onConfirmUpdatedDownload: (TaskRow) -> Unit,
     onDismissUpdateOutcome: () -> Unit,
-    onToggleDownloadAllAlternates: (Boolean) -> Unit
+    onOpenLastDownloadedGroup: () -> Unit,
+    onClearLastDownloadedGroup: () -> Unit,
+    onDismissStatus: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -53,20 +54,27 @@ fun ContestListScreen(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            state.statusMessage?.let { msg ->
+                Snackbar(
+                    modifier = Modifier.padding(12.dp),
+                    action = { TextButton(onClick = onDismissStatus) { Text("OK") } }
+                ) { Text(msg) }
+            }
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            TargetFolderCheckboxes(state, onToggleFolder)
-            HorizontalDivider()
-
-            DownloadAllAlternatesToggle(
-                checked = state.downloadAllAlternates,
-                onToggle = onToggleDownloadAllAlternates
-            )
+            DownloadStatusLine(state = state, onClick = onSettingsClick)
             HorizontalDivider()
 
             if (state.lastDownloadedTaskGroup != null) {
-                LastDownloadedTaskCheckCard(state = state, onCheckForUpdate = onCheckForUpdate)
+                LastDownloadedTaskCheckCard(
+                    state = state,
+                    onCheckForUpdate = onCheckForUpdate,
+                    onOpen = onOpenLastDownloadedGroup,
+                    onClear = onClearLastDownloadedGroup
+                )
                 HorizontalDivider()
             }
 
@@ -130,23 +138,36 @@ fun ContestListScreen(
 }
 
 /**
- * Set-before-use-and-retain (see CLAUDE.md gotcha 15 / docs/FEATURE-check-updated-task.md) -
- * pick this once before an event and leave it. Toggling clears the stored "last
- * downloaded" Check record (handled in the ViewModel), so the help text tells pilots
- * to expect a re-download of today's task after flipping it.
+ * One-line, read-only summary of what a download will do with the current
+ * Settings (Alternates + Save to, both moved to Settings - see DEVELOPMENT.md)
+ * - replaces the two controls that used to sit here directly. Always tappable
+ * through to Settings, in every state: the happy path jumps to the same
+ * section it's summarizing, and the two action states below tell the pilot
+ * exactly what to fix there rather than just naming the problem.
  */
 @Composable
-private fun DownloadAllAlternatesToggle(checked: Boolean, onToggle: (Boolean) -> Unit) {
+private fun DownloadStatusLine(state: AppUiState, onClick: () -> Unit) {
+    val (text, isActionNeeded) = when {
+        state.mediaTreeUri == null -> "Grant media access" to true
+        state.targetFolders.none { it.selected } -> "Select file destination" to true
+        else -> {
+            val scope = if (state.downloadAllAlternates) "Official & Alt" else "Official"
+            val folders = state.targetFolders.filter { it.selected }.mapNotNull { it.doc.name }
+            "Saving $scope to ${folders.joinToString(" & ")}" to false
+        }
+    }
+    val color = if (isActionNeeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
-        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            "Download Official and Alternate tasks.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Switch(checked = checked, onCheckedChange = onToggle)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = color, modifier = Modifier.weight(1f))
+        if (isActionNeeded) {
+            Icon(Icons.Filled.Settings, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        }
     }
 }
 
@@ -155,31 +176,49 @@ private fun DownloadAllAlternatesToggle(checked: Boolean, onToggle: (Boolean) ->
  * whether the official task has since been decided or changed - see
  * docs/FEATURE-check-updated-task.md. Only shown once something's actually been
  * downloaded.
+ *
+ * "Open" and "Clear" (added alongside the Settings/status-line rework - see
+ * DEVELOPMENT.md) are what actually get a pilot from "downloaded Day 1" to
+ * "viewing Day 2": Open re-resolves the real contest/class and jumps into the
+ * task list, where the existing date-driven filtering shows whatever day is
+ * current - it deliberately doesn't try to reuse the stored day. Clear just
+ * dismisses this card (same underlying record the Alternates toggle already
+ * clears automatically) for a pilot who's done with this event.
  */
 @Composable
-private fun LastDownloadedTaskCheckCard(state: AppUiState, onCheckForUpdate: () -> Unit) {
+private fun LastDownloadedTaskCheckCard(
+    state: AppUiState,
+    onCheckForUpdate: () -> Unit,
+    onOpen: () -> Unit,
+    onClear: () -> Unit
+) {
     val group = state.lastDownloadedTaskGroup ?: return
-    Row(
-        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                "${group.contestName} — ${group.className}" +
-                    (group.dhtHandicap?.let { " (handicap $it)" } ?: ""),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "Last downloaded task",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${group.contestName} — ${group.className}" +
+                        (group.dhtHandicap?.let { " (handicap $it)" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "Last downloaded task",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onClear) {
+                Icon(Icons.Filled.Close, contentDescription = "Clear")
+            }
         }
-        if (state.checkingForUpdate) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-        } else {
-            TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
+        Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+            if (state.checkingForUpdate) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
+                TextButton(onClick = onOpen) { Text("Open") }
+            }
         }
     }
 }

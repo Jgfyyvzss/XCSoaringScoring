@@ -39,8 +39,10 @@ app/src/main/java/io/github/jgfyyvzss/xcsoaringscoring/
                      pure functions, incl. TaskGroup/TaskGroupKey/
                      groupedVisibleTasks() for day/class/handicap grouping)
   ui/screens/       Compose screens - one file per screen, plus FolderPicker.kt
-                     (two composables: MediaFolderAccessSetting for Settings,
-                     TargetFolderCheckboxes for the home screen)
+                     (MediaFolderAccessSetting + TargetFolderCheckboxes, both
+                     now in Settings alongside Download Alternates - see
+                     DEVELOPMENT.md; the home screen shows a read-only summary
+                     of both instead, DownloadStatusLine in ContestListScreen.kt)
   MainActivity.kt   NavHost + SAF folder-picker launcher
   util/             DateFormat.kt - dateOnly() strips time-of-day from API dates
 ```
