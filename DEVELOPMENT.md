@@ -401,6 +401,24 @@ the manual path.
   on asking the SoaringScoring dev whether a pilot's glider/handicap is
   available anywhere, which determines whether this can resolve handicap
   too or just event + class.
+- **"My Contests" filter/highlight on the contest list - considered
+  (2026-09-09), deferred, not a rejection.** Smaller and separate from the
+  shortcut above: rather than jumping straight into a task, just mark or
+  filter the Current/Future/Past lists using the same already-fetched
+  `DustDevilEntry.contestId`s, so a signed-in pilot's own contest(s) stand
+  out in a long list. Conclusion after discussion: not worth building yet -
+  not because contest selection is a one-off (it isn't: the app doesn't
+  persist a selected contest across restarts, so a pilot re-drills-down
+  Current → contest → class every time they reopen the app, which in
+  practice means daily through a comp), but because that recurring pick is
+  already fast, since the Current tab's list is short enough today that
+  finding your own contest again each time isn't real friction. Revisit
+  if/when the Current list routinely gets long enough that scanning it
+  becomes the actual pain point
+  (more contests onboarding to SoaringScoring over time) - if so, prefer a
+  lightweight badge/sort-to-top on the existing `ContestCard`s over a
+  separate filtered tab, to avoid adding a new mode plus its own empty/stale
+  ("not synced from DustDevil yet") state to explain.
 - **Personal API key retirement** - both Settings override fields (general
   and upload) are earmarked for removal once DustDevil sign-in has been
   tested for real, before release. Not done yet - see "Decisions locked in"
