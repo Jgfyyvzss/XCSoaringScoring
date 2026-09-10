@@ -53,6 +53,7 @@ class SettingsRepository(private val context: Context) {
         val DUSTDEVIL_SELECTED_LOCAL_PART = stringPreferencesKey("dustdevil_selected_local_part")
         val LAST_DOWNLOADED_TASK_GROUP_JSON = stringPreferencesKey("last_downloaded_task_group_json")
         val DOWNLOAD_ALL_ALTERNATES = booleanPreferencesKey("download_all_alternates")
+        val HAS_SEEN_FIRST_RUN_HELP = booleanPreferencesKey("has_seen_first_run_help")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -98,6 +99,14 @@ class SettingsRepository(private val context: Context) {
      */
     val downloadAllAlternates: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.DOWNLOAD_ALL_ALTERNATES] ?: true }
+
+    /**
+     * Whether the first-run help dialog has already been shown and dismissed once -
+     * see docs/FEATURE-first-run-help.md. Defaults to `false` (not yet seen) so a
+     * genuinely fresh install shows it automatically; never reset once true.
+     */
+    val hasSeenFirstRunHelp: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.HAS_SEEN_FIRST_RUN_HELP] ?: false }
 
     suspend fun setApiKey(value: String) {
         context.dataStore.edit { it[Keys.API_KEY] = value }
@@ -152,5 +161,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setDownloadAllAlternates(value: Boolean) {
         context.dataStore.edit { it[Keys.DOWNLOAD_ALL_ALTERNATES] = value }
+    }
+
+    suspend fun setHasSeenFirstRunHelp(value: Boolean) {
+        context.dataStore.edit { it[Keys.HAS_SEEN_FIRST_RUN_HELP] = value }
     }
 }

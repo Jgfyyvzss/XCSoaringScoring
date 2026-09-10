@@ -39,7 +39,8 @@ fun ContestListScreen(
     onDismissUpdateOutcome: () -> Unit,
     onOpenLastDownloadedGroup: () -> Unit,
     onClearLastDownloadedGroup: () -> Unit,
-    onDismissStatus: () -> Unit
+    onDismissStatus: () -> Unit,
+    onDismissFirstRunHelp: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -135,6 +136,13 @@ fun ContestListScreen(
             onDismiss = onDismissUpdateOutcome
         )
     }
+
+    // First launch only (see docs/FEATURE-first-run-help.md) - persists once dismissed,
+    // never auto-appears again. Deliberately doesn't wait on contest data or folder
+    // permissions; the content depends on neither.
+    if (!state.hasSeenFirstRunHelp) {
+        HelpDialog(onDismiss = onDismissFirstRunHelp, blocking = true)
+    }
 }
 
 /**
@@ -213,7 +221,7 @@ private fun LastDownloadedTaskCheckCard(
             }
         }
         Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-            if (state.checkingForUpdate) {
+            if (state.checkingForUpdate || state.openingLastDownloadedGroup) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             } else {
                 TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
