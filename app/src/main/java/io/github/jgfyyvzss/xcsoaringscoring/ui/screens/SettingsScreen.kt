@@ -326,52 +326,68 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
         HelpItem.Plain(
             "Grant access to your device's Android/media folder first - a one-time step " +
                 "(Settings → Choose Android/media). In the system folder browser that " +
-                "opens: Internal storage → Android → media."
-        ),
-        HelpItem.Emphasized(
-            prefix = "Once you're actually inside the \"media\" folder (not just seeing it " +
+                "opens: Internal storage → Android → media. " +
+       			"Once you're actually inside the \"media\" folder (not just seeing it " +
                 "highlighted in a list), ",
             bold = "look for a confirm button - often \"USE THIS FOLDER\"",
-            suffix = " - this is the one step almost everyone misses; opening the folder " +
+            suffix = " - this is often missed; opening the folder " +
                 "isn't the same as confirming it. Your phone may show one more confirmation " +
                 "popup after that - tap Allow/OK."
         ),
         HelpItem.Plain("Recommended - Sign in to your DustDevil/SoaringScoring account in Settings"),
         HelpItem.Plain("In Settings, tick which XCSoar app(s) to save into and to select igc from."),
         HelpItem.Plain(
-            "Toggle Also Alternates ON or OFF. Official tasks always download. If you select " +
-                "Also Alternates all alternate tasks (eg A, B, C) are also downloaded, allowing " +
+            "Toggle Download Alternates ON or OFF. Official tasks always download. If you turn on " +
+                "Download Alternates all alternate tasks (eg A, B, C) are also downloaded, allowing " +
                 "easy selection within XCSoar if needed."
         ),
+       	HelpItem.Plain(
+       		bold = "Navigation Icons"),
+        HelpItem.WithIcon(
+            Icons.Filled.Settings,
+            "Settings page. Select Android/media access, Sign in to DustDevil, which installed " +
+            "XCSoar(s) to save to, whether to download Alternate tasks, this help file. Find it at " +
+            "the top of Main page."
+        ),
+        HelpItem.WithIcon(
+            Icons.Filled.HelpOutline,
+            "This help file. Find it at the top of Settings"
+        ),
+        HelpItem.WithIcon(
+            Icons.Filled.UploadFile,
+            "Upload igc files for scoring. Login to your account on the settings page first, usually " +
+            "once at the start of an event is enough. Find it at the top of the main screen."
+        ),
+   		HelpItem.WithIcon(
+            Icons.Filled.FolderOpen,
+            "Select an igc file from a folder other than XCSoar. Allows for USB etc. " +
+            "Find it at the top of the Upload screen."
+        ),
+        HelpItem.WithIcon(
+            Icons.Filled.Place,
+            "Waypoints for the whole contest. Download once via this icon in the task list's " +
+                "top bar. You need to manually select the waypoint file in XCSoar - " +
+                "Configuration | File Locations"
+        ),
+        HelpItem.Plain(
+        	bold = "Usage."),
         HelpItem.Plain("Pick your contest, then your class (and handicap, if the day uses one)."),
         HelpItem.Plain(
             "Downloading an official task always overwrites the active default.tsk in XCSoar. " +
                 "Copies of all tasks (official and alternates) are saved to XCSoar in case you " +
-                "need to load them manually"
+                "need to load them manually."
+        ),
+        HelpItem.Plain(
+            "Once tasks have been downloaded a Check for updated task Button appears. Tapping " +
+                "this checks if the official task has been changed or selected. If XCSoar is " +
+                "running already use Task Manager to select the indicated task. If XCSoar is " +
+                "not running, it will load the new official task automatically."
         ),
         HelpItem.Plain(
             "Turning ON or OFF the Download Official and Alternate tasks toggle clears download " +
                 "history. You will need to re-download today's task(s) after toggling this. It " +
                 "is recommended that you set it before the start of an event and leave it until " +
                 "the end to avoid confusion."
-        ),
-        HelpItem.Plain(
-            "Once tasks have been downloaded a Check for updated task Button appears. Tapping " +
-                "this checks if the official task has been changed or selected. If XCSoar is " +
-                "running already use Task Manager to select the indicated task. If XCsoar is " +
-                "not running, it will load the new official task automatically."
-        ),
-        HelpItem.WithIcon(
-            Icons.Filled.Place,
-            "Waypoints for the whole contest download once via this icon in the task list's " +
-                "top bar. You need to manually select the waypoint file in XCSoar - " +
-                "Configuration | File Locations"
-        ),
-        HelpItem.WithIcon(
-            Icons.Filled.UploadFile,
-            "Upload igc files for scoring with this icon at the top of the main screen. Login " +
-                "to your account on the settings page first, usually once at the start of an " +
-                "event is enough."
         ),
         HelpItem.Plain(
             "If your current contest is not appearing for uploads try Refresh in Settings | " +
