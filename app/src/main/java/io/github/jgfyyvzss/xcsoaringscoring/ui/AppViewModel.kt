@@ -72,6 +72,9 @@ data class AppUiState(
     val lastDownloadedTaskGroup: LastDownloadedTaskGroup? = null,
     val checkingForUpdate: Boolean = false,
     val updateCheckOutcome: UpdateCheckOutcome? = null,
+    // "Open" on the Check card - re-fetching the real Contest before navigating (see
+    // openLastDownloadedGroup()) can take a moment with no feedback otherwise.
+    val openingLastDownloadedGroup: Boolean = false,
     // Set-before-use-and-retain - see setDownloadAllAlternates().
     val downloadAllAlternates: Boolean = true,
     // Defaults true (not false) so the brief window before settings finish loading
@@ -607,7 +610,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * fires once the contest is actually found; a missing class still resolves
      * (same as normal browsing before picking a class) but a missing contest
      * does not navigate at all - the failure surfaces via `statusMessage` on
-     * the home screen instead.
+     * the home screen instead. `openingLastDownloadedGroup` covers the wait
+     * for this first fetch (a large contest list can take a moment) with no
+     * other feedback otherwise - real user feedback, not a hypothetical.
      *
      * Deliberately doesn't call `selectContest()`/`loadClasses()` - those fire
      * their own classes fetch, which would race a second one here needed to
@@ -619,16 +624,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun openLastDownloadedGroup(onResolved: () -> Unit) {
         val group = _uiState.value.lastDownloadedTaskGroup ?: return
         val key = _uiState.value.apiKey.ifBlank { null }
+        _uiState.value = _uiState.value.copy(openingLastDownloadedGroup = true)
         viewModelScope.launch {
             val contest = (api.getContests(key) as? ApiResult.Success)?.data
                 ?.find { it.id == group.contestId }
             if (contest == null) {
                 _uiState.value = _uiState.value.copy(
+                    openingLastDownloadedGroup = false,
                     statusMessage = "Couldn't find that contest anymore - it may have been removed."
                 )
                 return@launch
             }
             _uiState.value = _uiState.value.copy(
+                openingLastDownloadedGroup = false,
                 selectedContest = contest,
                 tasks = emptyList(),
                 tasksError = null,

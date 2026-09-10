@@ -221,7 +221,7 @@ private fun LastDownloadedTaskCheckCard(
             }
         }
         Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-            if (state.checkingForUpdate) {
+            if (state.checkingForUpdate || state.openingLastDownloadedGroup) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             } else {
                 TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
