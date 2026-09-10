@@ -49,9 +49,11 @@ fun MediaFolderAccessSetting(
 }
 
 /**
- * Per-download choice of which detected XCSoar folder(s) to save into. Belongs on
- * the contest list (home) screen - this is something you might change from one
- * download to the next, e.g. switching between XCSoar and XCSoar Jet.
+ * Choice of which detected XCSoar folder(s) to save into. Moved from the home
+ * screen into Settings (see DEVELOPMENT.md) alongside Download Alternates - both
+ * are set-once-per-event choices, not something to reconsider on every visit to
+ * the home screen; a read-only summary of both now lives there instead
+ * (`DownloadStatusLine` in `ContestListScreen.kt`).
  */
 @Composable
 fun TargetFolderCheckboxes(
@@ -66,11 +68,11 @@ fun TargetFolderCheckboxes(
         }
         when {
             state.mediaTreeUri == null -> Text(
-                "Open Settings (Gear icon at top right) and grant folder access",
+                "Grant Android/media access below first.",
                 style = MaterialTheme.typography.bodySmall
             )
             state.targetFolders.isEmpty() -> Text(
-                "No XCSoar-like folders found. Check folder access in Settings.",
+                "No XCSoar-like folders found. Check Android/media access below.",
                 style = MaterialTheme.typography.bodySmall
             )
             else -> state.targetFolders.forEach { folder ->

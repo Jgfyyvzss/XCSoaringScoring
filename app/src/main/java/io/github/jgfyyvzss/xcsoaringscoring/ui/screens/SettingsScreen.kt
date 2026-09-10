@@ -17,12 +17,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.jgfyyvzss.xcsoaringscoring.BuildConfig
 import io.github.jgfyyvzss.xcsoaringscoring.ui.AppUiState
+import io.github.jgfyyvzss.xcsoaringscoring.ui.TargetFolder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     state: AppUiState,
     onBack: () -> Unit,
+    onToggleDownloadAllAlternates: (Boolean) -> Unit,
+    onToggleFolder: (TargetFolder) -> Unit,
     onChooseMediaFolder: () -> Unit,
     onSaveEntryAddress: (String) -> Unit,
     onSaveExpertKeys: (String, String) -> Unit,
@@ -59,6 +62,15 @@ fun SettingsScreen(
         Column(
             Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
         ) {
+            DownloadAllAlternatesToggle(
+                checked = state.downloadAllAlternates,
+                onToggle = onToggleDownloadAllAlternates
+            )
+            HorizontalDivider()
+
+            TargetFolderCheckboxes(state, onToggleFolder)
+            HorizontalDivider()
+
             MediaFolderAccessSetting(state, onChooseMediaFolder)
             HorizontalDivider()
 
@@ -162,6 +174,29 @@ fun SettingsScreen(
 }
 
 /**
+ * Set-before-use-and-retain (see CLAUDE.md gotcha 15 / docs/FEATURE-check-updated-task.md) -
+ * pick this once before an event and leave it. Toggling clears the stored "last
+ * downloaded" Check record (handled in the ViewModel), so the help text tells pilots
+ * to expect a re-download of today's task after flipping it. Moved here from the home
+ * screen along with "Save to" (see DEVELOPMENT.md) - both are set-once-per-event
+ * choices, not something to reconsider on every visit to the home screen.
+ */
+@Composable
+private fun DownloadAllAlternatesToggle(checked: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
+        Modifier.padding(16.dp).fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Download Official and Alternate tasks.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(checked = checked, onCheckedChange = onToggle)
+    }
+}
+
+/**
  * Sign in once and SoaringScoring resolves the pilot's own contest entries -
  * no more hand-typing a competition number and contest key below. See
  * DEVELOPMENT.md's "DustDevil.cloud sign-in" section: still being rolled out,
@@ -261,7 +296,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
     val points = listOf(
         "Grant access to your device's Android/media folder first - a one-time step.",
         "Recommended - Sign in to your DustDevil/SoaringScoring account in Settings",
-        "On the home screen, tick which XCSoar app(s) to save into and to select igc from.",
+        "In Settings, tick which XCSoar app(s) to save into and to select igc from.",
         "Toggle Also Alternates ON or OFF. Official tasks always download. If you select Also Alternates all alternate tasks (eg A, B, C) are also downloaded, allowing easy selection within XCSoar if needed.",
         "Pick your contest, then your class (and handicap, if the day uses one).",
         "Downloading an official task always overwrites the active default.tsk in XCSoar. Copies of all tasks (official and alternates) are saved to XCSoar in case you need to load them manually",

@@ -583,6 +583,82 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(statusMessage = null)
     }
 
+    /**
+     * "Open" action on the home screen's Check card - jumps back into this
+     * contest/class regardless of which day was last downloaded. Deliberately
+     * ignores the stored `dayId`: this re-fetches a real `Contest`/`ContestClass`
+     * (never trusting the stored name-only fields, same discipline as normal
+     * browsing) and selects them exactly like tapping through the contest list
+     * would - `TaskListScreen`'s own date-driven filtering then shows whatever
+     * day is actually current, closing the gap where a pilot's stored group
+     * still points at yesterday's day but the contest/class are still right.
+     *
+     * Takes a completion callback rather than being fire-and-forget like
+     * `selectContest()`: MainActivity's "tasks" route renders nothing at all
+     * when `selectedContest` is null (see its `composable("tasks")` block), so
+     * navigating there before the contest resolves would be a dead-end blank
+     * screen with no way back short of the OS back button. [onResolved] only
+     * fires once the contest is actually found; a missing class still resolves
+     * (same as normal browsing before picking a class) but a missing contest
+     * does not navigate at all - the failure surfaces via `statusMessage` on
+     * the home screen instead.
+     *
+     * Deliberately doesn't call `selectContest()`/`loadClasses()` - those fire
+     * their own classes fetch, which would race a second one here needed to
+     * find this specific class by id (whichever finished last would silently
+     * win `selectedClass`, sometimes back to null). One classes fetch instead,
+     * selecting the matched class directly - `loadTasks()` alone is safe to
+     * reuse since nothing else calls it concurrently for this contest.
+     */
+    fun openLastDownloadedGroup(onResolved: () -> Unit) {
+        val group = _uiState.value.lastDownloadedTaskGroup ?: return
+        val key = _uiState.value.apiKey.ifBlank { null }
+        viewModelScope.launch {
+            val contest = (api.getContests(key) as? ApiResult.Success)?.data
+                ?.find { it.id == group.contestId }
+            if (contest == null) {
+                _uiState.value = _uiState.value.copy(
+                    statusMessage = "Couldn't find that contest anymore - it may have been removed."
+                )
+                return@launch
+            }
+            _uiState.value = _uiState.value.copy(
+                selectedContest = contest,
+                tasks = emptyList(),
+                tasksError = null,
+                classes = emptyList(),
+                classesError = null,
+                selectedClass = null
+            )
+            onResolved()
+            loadTasks(contest)
+
+            _uiState.value = _uiState.value.copy(classesLoading = true, classesError = null)
+            when (val result = api.getClasses(contest.id, key)) {
+                is ApiResult.Success -> {
+                    val classes = result.data
+                    _uiState.value = _uiState.value.copy(
+                        classes = classes,
+                        classesLoading = false,
+                        // Prefer the class this group was actually for; fall back to the
+                        // usual single-class auto-select if it's gone missing.
+                        selectedClass = classes.find { it.id == group.classId } ?: classes.singleOrNull()
+                    )
+                }
+                is ApiResult.Failure -> _uiState.value = _uiState.value.copy(
+                    classesLoading = false,
+                    classesError = describeError(result)
+                )
+            }
+        }
+    }
+
+    /** Explicit "Clear" on the Check card - same underlying clear as toggling Alternates. */
+    fun clearLastDownloadedGroup() {
+        _uiState.value = _uiState.value.copy(lastDownloadedTaskGroup = null)
+        viewModelScope.launch { settings.clearLastDownloadedTaskGroup() }
+    }
+
     // --- DustDevil.cloud sign-in ---
 
     /**

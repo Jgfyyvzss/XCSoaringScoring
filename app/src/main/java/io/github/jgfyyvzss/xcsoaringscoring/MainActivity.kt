@@ -105,12 +105,15 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
                 onSettingsClick = { navController.navigate("settings") },
                 onUploadClick = { navController.navigate("upload") },
                 onRetry = { viewModel.loadContests() },
-                onToggleFolder = { viewModel.toggleFolderSelected(it.doc) },
                 onSelectTimeFrame = { viewModel.selectTimeFrame(it) },
                 onCheckForUpdate = { viewModel.checkForUpdatedTask() },
                 onConfirmUpdatedDownload = { viewModel.confirmUpdatedTaskDownload(it) },
                 onDismissUpdateOutcome = { viewModel.dismissUpdateCheckOutcome() },
-                onToggleDownloadAllAlternates = { viewModel.setDownloadAllAlternates(it) }
+                onOpenLastDownloadedGroup = {
+                    viewModel.openLastDownloadedGroup { navController.navigate("tasks") }
+                },
+                onClearLastDownloadedGroup = { viewModel.clearLastDownloadedGroup() },
+                onDismissStatus = { viewModel.clearStatusMessage() }
             )
         }
         composable("tasks") {
@@ -134,6 +137,8 @@ private fun AppNavHost(viewModel: AppViewModel, onStartDustDevilSignIn: (String)
             SettingsScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
+                onToggleDownloadAllAlternates = { viewModel.setDownloadAllAlternates(it) },
+                onToggleFolder = { viewModel.toggleFolderSelected(it.doc) },
                 onChooseMediaFolder = {
                     // Point the system picker at Android/media as a starting hint.
                     mediaTreePicker.launch(null)

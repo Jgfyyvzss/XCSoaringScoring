@@ -133,6 +133,46 @@ no ads, no trackers, no Google Play Services, every dependency is Apache 2.0
   re-entering the screen re-runs the normal ticked-folder scan via its
   existing `LaunchedEffect`, so the browsed view never needs explicit reset
   logic.
+- **Home screen decluttering: Settings reorg + status line + Check card
+  "Open"/"Clear" (2026-09-10, `Develop` branch)** - implements Part 2 of
+  `docs/FEATURE-my-event-and-layout.md`, with the placement details below
+  superseding what that doc originally proposed (see its status note). Both
+  `DownloadAllAlternatesToggle` and `TargetFolderCheckboxes` moved from
+  `ContestListScreen` into `SettingsScreen` (order: Download Alternates,
+  Save to, Android/media access, Sign in with DustDevil/SoaringScoring -
+  everything else already in Settings is unchanged). The home screen gained
+  a single tappable `DownloadStatusLine` in their place - always navigates
+  to Settings on tap, in every state: `"Saving Official & Alt to xcsoar &
+  xcsoar_jet"` when ready, or an action ("Grant media access" / "Select
+  file destination", in `colorScheme.error` with a trailing Settings icon)
+  when it isn't.
+
+  Separately, the existing `LastDownloadedTaskCheckCard` gained two actions
+  addressing a real gap: the pre-existing "Check for updated task" only
+  ever re-checks the *same* stored `dayId` - it has no way to get a pilot
+  from "downloaded Day 1" to "viewing Day 2." **"Open"** (`AppViewModel.
+  openLastDownloadedGroup()`) re-fetches the real `Contest`/`ContestClass`
+  for the stored `contestId`/`classId` and navigates into the task list -
+  deliberately ignoring the stored `dayId`, since `TaskListScreen`'s own
+  date-driven filtering already shows whatever day is actually current once
+  there. Takes a completion callback rather than being fire-and-forget like
+  every other selection function here, specifically because MainActivity's
+  `composable("tasks")` renders nothing at all when `selectedContest` is
+  null - navigating before the contest resolves would be a dead-end blank
+  screen, so the callback only fires once it's confirmed to exist (a
+  missing *class* still resolves and navigates, same as normal browsing
+  before picking one; only a missing *contest* is treated as a failure,
+  surfaced via the pre-existing `statusMessage` snackbar, now also wired up
+  on `ContestListScreen` since this is the first thing on the home screen
+  that needs it). **"Clear"** (`AppViewModel.clearLastDownloadedGroup()`) is
+  the same underlying record the Alternates toggle already clears
+  automatically, just exposed as an explicit pilot action for "done with
+  this event."
+
+  This was deliberately chosen over building "My Event" (Part 1) itself -
+  see the roadmap entry above for why - as a cheaper way to test whether
+  the daily re-entry friction is actually solved before committing to the
+  bigger mechanism.
 
 ## DustDevil.cloud sign-in (in progress - `OAuth` branch)
 
@@ -394,31 +434,50 @@ the manual path.
   handling, DustDevil API models, DataStore session storage). Blocked on the
   SoaringScoring dev for redirect URI approval + `client_key_id` before it
   can be tested end-to-end; the sign-in button stays disabled until then.
-- **OAuth-aware task browsing shortcut** - see "Design note" under the
-  DustDevil section above. Proposed, not built: use the already-fetched
-  `DustDevilEntry` data to skip straight to a signed-in pilot's event/class
-  from the contest list, alongside (not replacing) normal browsing. Blocked
-  on asking the SoaringScoring dev whether a pilot's glider/handicap is
-  available anywhere, which determines whether this can resolve handicap
-  too or just event + class.
-- **"My Contests" filter/highlight on the contest list - considered
-  (2026-09-09), deferred, not a rejection.** Smaller and separate from the
-  shortcut above: rather than jumping straight into a task, just mark or
-  filter the Current/Future/Past lists using the same already-fetched
-  `DustDevilEntry.contestId`s, so a signed-in pilot's own contest(s) stand
-  out in a long list. Conclusion after discussion: not worth building yet -
-  not because contest selection is a one-off (it isn't: the app doesn't
-  persist a selected contest across restarts, so a pilot re-drills-down
-  Current → contest → class every time they reopen the app, which in
-  practice means daily through a comp), but because that recurring pick is
-  already fast, since the Current tab's list is short enough today that
-  finding your own contest again each time isn't real friction. Revisit
-  if/when the Current list routinely gets long enough that scanning it
-  becomes the actual pain point
-  (more contests onboarding to SoaringScoring over time) - if so, prefer a
-  lightweight badge/sort-to-top on the existing `ContestCard`s over a
-  separate filtered tab, to avoid adding a new mode plus its own empty/stale
-  ("not synced from DustDevil yet") state to explain.
+- **OAuth-aware task browsing shortcut ("My Event") - held (2026-09-10),
+  not rejected.** Full spec in `docs/FEATURE-my-event-and-layout.md` (Part
+  1); see "Design note" under the DustDevil section above for the original
+  reasoning. Still blocked on asking the SoaringScoring dev whether a
+  pilot's glider/handicap is available anywhere (determines whether this
+  could resolve handicap too, or just event + class), but that's no longer
+  the reason it's on hold - see below for what shipped instead and why this
+  is waiting to see if that's enough first.
+- **"My Contests" filter/highlight - the anticipated trigger arrived; a
+  different fix shipped instead of this one.** The deferred note below (from
+  2026-09-09) said to revisit once the Current list looked likely to get
+  long - that happened almost immediately, from real user feedback (not
+  hypothetical), prompting `docs/FEATURE-my-event-and-layout.md`. But the
+  conclusion wasn't "build the badge": discussion (2026-09-10) judged a
+  same-contest-list filter/badge still didn't go far enough to address the
+  underlying friction (finding *and re-entering* your own contest, not just
+  spotting it in a list), while a full "My Event" shortcut was more building
+  than was justified before knowing whether a cheaper fix would do. That
+  cheaper fix - extending the existing Check card with "Open" and "Clear" -
+  is what actually shipped; see the new feature-history entry below. Original
+  deferred reasoning, for the record: not because contest selection is a
+  one-off (the app doesn't persist a selected contest across restarts, so a
+  pilot re-drills-down Current → contest → class every time they reopen the
+  app - daily, through a comp), but because that recurring pick was still
+  fast enough while the Current list stayed short.
+- **Geographic contest filter (e.g. a Settings-level region filter) -
+  considered (2026-09-10), dropped.** Raised as another way to shrink a
+  growing Current list. `Contest` has no location field at all (`id`,
+  `slug`, `name`, `organisationName`, `startDate`, `endDate`, `timezone` -
+  see `api/Models.kt`); `timezone` could serve as a rough zero-new-API-surface
+  proxy (bucket by IANA continent prefix), but it's optional and already
+  flagged as unreliable (CLAUDE.md gotcha 7), and the dev's own instinct was
+  that a single-region bucket wouldn't help pilots in contest-dense regions
+  (Europe named specifically). More fundamentally, it solves a different
+  problem than the recurring friction driving this discussion - it helps
+  someone *discovering* a contest to enter, not someone *returning* to the
+  one they're already in. Not planned.
+- **First-run help dialog - definite, not yet built.** Full spec in
+  `docs/FEATURE-first-run-help.md`. Shows automatically on first launch
+  only (persisted, never again after dismissal), explicitly walking through
+  the Android system folder-picker's easy-to-miss "USE THIS FOLDER" confirm
+  button - real tester confusion, not a hypothetical. Reuses the existing
+  `HelpDialog`/`showHelp` pattern in `SettingsScreen.kt` rather than
+  building a second dialog.
 - **Personal API key retirement** - both Settings override fields (general
   and upload) are earmarked for removal once DustDevil sign-in has been
   tested for real, before release. Not done yet - see "Decisions locked in"
