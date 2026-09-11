@@ -347,9 +347,9 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
         HelpItem.Header("Navigation Icons"),
         HelpItem.WithIcon(
             Icons.Filled.Settings,
-            "Settings page. Select Android/media access, Sign in to DustDevil, which installed " +
-            "XCSoar(s) to save to, whether to download Alternate tasks, this help file. Find it at " +
-            "the top of Main page."
+            "Settings page. Select Android/media access; Sign in to DustDevil; select installed " +
+            "XCSoar(s) to save to; whether to download Alternate tasks; this help file. " +
+                "Find it at the top of Main page."
         ),
         HelpItem.WithIcon(
             Icons.AutoMirrored.Filled.HelpOutline,
@@ -358,7 +358,8 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
         HelpItem.WithIcon(
             Icons.Filled.UploadFile,
             "Upload igc files for scoring. Login to your account on the settings page first, usually " +
-            "once at the start of an event is enough. Find it at the top of the main screen."
+            "once at the start of an event is enough. " +
+            "Find it at the top of the main screen."
         ),
         HelpItem.WithIcon(
             Icons.Filled.FolderOpen,
@@ -367,9 +368,9 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
         ),
         HelpItem.WithIcon(
             Icons.Filled.Place,
-            "Waypoints for the whole contest. Download once via this icon in the task list's " +
-                "top bar. You need to manually select the waypoint file in XCSoar - " +
-                "Configuration | File Locations"
+            "Waypoints for the whole contest. Download once via this icon, then manually select " +
+                "the waypoint file in XCSoar - Configuration | File Locations " +
+                "Find it at the top of the task list screen"
         ),
         HelpItem.Header("Usage"),
         HelpItem.Plain("Pick your contest, then your class (and handicap, if the day uses one)."),
@@ -379,10 +380,16 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
                 "need to load them manually."
         ),
         HelpItem.Plain(
-            "Once tasks have been downloaded a Check for updated task Button appears. Tapping " +
-                "this checks if the official task has been changed or selected. If XCSoar is " +
-                "running already use Task Manager to select the indicated task. If XCSoar is " +
-                "not running, it will load the new official task automatically."
+            "Once tasks have been downloaded a Tile appears showing the Last downloaded Contest, " +
+                "Class & Handicap. Tapping this takes you directly to that Contest/Class. Useful for" +
+                "subsequent contest days - a shortcut to your task download page" +
+                "Within this section Clear Link clears the Last downloaded task, Check Current compares" +
+                "the downloaded Official task with the currently listed Official task. If a changed" +
+                "Official task is detected the new task filename is shown. If XCSoar is already running " +
+                "use Task Manager to select the indicated task. If XCSoar is not running, it will" +
+                "load the new official task automatically. If the new task is one that was previously " +
+                "downloaded as an alternate no download will be conducted, to reduce data requirements " +
+                "out on grid where reception may be minimal."
         ),
         HelpItem.Plain(
             "Turning ON or OFF the Download Official and Alternate tasks toggle clears download " +
