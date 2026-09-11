@@ -6,7 +6,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -306,6 +308,8 @@ private sealed class HelpItem {
     data class Plain(val text: String) : HelpItem()
     data class Emphasized(val prefix: String, val bold: String, val suffix: String) : HelpItem()
     data class WithIcon(val icon: ImageVector, val text: String) : HelpItem()
+    /** A bold section label with no bullet point - groups the bullets that follow it. */
+    data class Header(val text: String) : HelpItem()
 }
 
 /**
@@ -323,11 +327,11 @@ private sealed class HelpItem {
 @Composable
 fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
     val points = listOf(
-        HelpItem.Plain(
-            "Grant access to your device's Android/media folder first - a one-time step " +
+        HelpItem.Emphasized(
+            prefix = "Grant access to your device's Android/media folder first - a one-time step " +
                 "(Settings → Choose Android/media). In the system folder browser that " +
                 "opens: Internal storage → Android → media. " +
-       			"Once you're actually inside the \"media\" folder (not just seeing it " +
+                "Once you're actually inside the \"media\" folder (not just seeing it " +
                 "highlighted in a list), ",
             bold = "look for a confirm button - often \"USE THIS FOLDER\"",
             suffix = " - this is often missed; opening the folder " +
@@ -341,8 +345,7 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
                 "Download Alternates all alternate tasks (eg A, B, C) are also downloaded, allowing " +
                 "easy selection within XCSoar if needed."
         ),
-       	HelpItem.Plain(
-       		bold = "Navigation Icons"),
+        HelpItem.Header("Navigation Icons"),
         HelpItem.WithIcon(
             Icons.Filled.Settings,
             "Settings page. Select Android/media access, Sign in to DustDevil, which installed " +
@@ -350,7 +353,7 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
             "the top of Main page."
         ),
         HelpItem.WithIcon(
-            Icons.Filled.HelpOutline,
+            Icons.AutoMirrored.Filled.HelpOutline,
             "This help file. Find it at the top of Settings"
         ),
         HelpItem.WithIcon(
@@ -358,7 +361,7 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
             "Upload igc files for scoring. Login to your account on the settings page first, usually " +
             "once at the start of an event is enough. Find it at the top of the main screen."
         ),
-   		HelpItem.WithIcon(
+        HelpItem.WithIcon(
             Icons.Filled.FolderOpen,
             "Select an igc file from a folder other than XCSoar. Allows for USB etc. " +
             "Find it at the top of the Upload screen."
@@ -369,8 +372,7 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
                 "top bar. You need to manually select the waypoint file in XCSoar - " +
                 "Configuration | File Locations"
         ),
-        HelpItem.Plain(
-        	bold = "Usage."),
+        HelpItem.Header("Usage"),
         HelpItem.Plain("Pick your contest, then your class (and handicap, if the day uses one)."),
         HelpItem.Plain(
             "Downloading an official task always overwrites the active default.tsk in XCSoar. " +
@@ -423,6 +425,11 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
                             Spacer(Modifier.width(6.dp))
                             Text("•  ${point.text}", style = MaterialTheme.typography.bodyMedium)
                         }
+                        is HelpItem.Header -> Text(
+                            point.text,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
