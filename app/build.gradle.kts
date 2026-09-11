@@ -46,8 +46,8 @@ android {
         // versionName: what humans see. Semantic-ish is fine: MAJOR.MINOR.PATCH -
         //   bump PATCH for a bugfix-only release, MINOR for new features, MAJOR for
         //   a big breaking change. Also feeds the friendly APK filename below.
-        versionCode = 2
-        versionName = "1.3.2"
+        versionCode = 3
+        versionName = "1.3.3"
 
         buildConfigField("String", "SS_API_KEY", "\"$ssApiKey\"")
         buildConfigField("String", "SS_DUSTDEVIL_CLIENT_KEY_ID", "\"$ssDustDevilClientKeyId\"")
