@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
@@ -185,13 +186,25 @@ private fun DownloadStatusLine(state: AppUiState, onClick: () -> Unit) {
  * docs/FEATURE-check-updated-task.md. Only shown once something's actually been
  * downloaded.
  *
- * "Open" and "Clear" (added alongside the Settings/status-line rework - see
- * DEVELOPMENT.md) are what actually get a pilot from "downloaded Day 1" to
- * "viewing Day 2": Open re-resolves the real contest/class and jumps into the
- * task list, where the existing date-driven filtering shows whatever day is
- * current - it deliberately doesn't try to reuse the stored day. Clear just
- * dismisses this card (same underlying record the Alternates toggle already
- * clears automatically) for a pilot who's done with this event.
+ * The contest/class title itself is the "Open" tap target (not a separate button
+ * that has to explain where it goes), rendered as an actual `Card` - the same
+ * component `ContestCard` uses - because tapping it does exactly what tapping a
+ * ContestCard does (resolve + open a contest/class), so it should look like the
+ * same thing rather than reading as plain text. Re-resolves the real contest/class
+ * and jumps into the task list, where the existing date-driven filtering shows
+ * whatever day is current - deliberately doesn't try to reuse the stored day,
+ * which is what actually gets a pilot from "downloaded Day 1" to "viewing Day 2."
+ * The plain "Last downloaded task" label sits above, non-interactive, then the
+ * Card, then Clear + Check share one row below - every tappable thing grouped
+ * together rather than scattered around a caption. Clear Link's chip shape is
+ * set to `ButtonDefaults.shape` - the same shape token `OutlinedButton` itself
+ * uses - so it's pixel-identical to the button next to it (Material3's
+ * `AssistChip` default corner radius is much smaller on its own, which read as
+ * visually inconsistent with everything else on this card; `MaterialTheme.
+ * shapes` has no "full"/pill token to reach for instead - only extraSmall
+ * through extraLarge). Clear just dismisses this card (same underlying
+ * record the Alternates toggle already clears automatically) for a pilot
+ * done with this event.
  */
 @Composable
 private fun LastDownloadedTaskCheckCard(
@@ -202,30 +215,51 @@ private fun LastDownloadedTaskCheckCard(
 ) {
     val group = state.lastDownloadedTaskGroup ?: return
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+        Text(
+            "Last downloaded task",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
+        // Same Card component ContestCard uses elsewhere - this does the same thing
+        // (resolves and opens a contest/class), so it should look like the same thing.
+        Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     "${group.contestName} — ${group.className}" +
                         (group.dhtHandicap?.let { " (handicap $it)" } ?: ""),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
                 )
-                Text(
-                    "Last downloaded task",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            IconButton(onClick = onClear) {
-                Icon(Icons.Filled.Close, contentDescription = "Clear")
             }
         }
-        Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AssistChip(
+                onClick = onClear,
+                shape = ButtonDefaults.shape,
+                label = { Text("Clear Link") },
+                leadingIcon = {
+                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            )
             if (state.checkingForUpdate || state.openingLastDownloadedGroup) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             } else {
-                TextButton(onClick = onCheckForUpdate) { Text("Check for updated task") }
-                TextButton(onClick = onOpen) { Text("Open") }
+                OutlinedButton(onClick = onCheckForUpdate) { Text("Check Current") }
             }
         }
     }

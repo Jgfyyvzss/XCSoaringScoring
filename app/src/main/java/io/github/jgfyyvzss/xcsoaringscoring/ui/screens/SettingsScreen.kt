@@ -198,7 +198,7 @@ private fun DownloadAllAlternatesToggle(checked: Boolean, onToggle: (Boolean) ->
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "Download Official and Alternate tasks.",
+            "Download Alternate tasks.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f)
         )
@@ -221,7 +221,7 @@ private fun DustDevilSignInSetting(
     onDismissError: () -> Unit
 ) {
     Column(Modifier.padding(16.dp)) {
-        Text("Sign in with DustDevil/SoaringScoring", style = MaterialTheme.typography.titleMedium)
+        Text("Sign in to DustDevil/SoaringScoring", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         when {
@@ -280,8 +280,7 @@ private fun DustDevilSignInSetting(
             }
             else -> {
                 Text(
-                    "Resolves your own contest entries automatically - replaces typing a " +
-                        "competition number and contest key below.",
+                    "Finds your Contests for uploads.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
