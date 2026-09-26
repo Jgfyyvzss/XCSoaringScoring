@@ -381,12 +381,12 @@ fun HelpDialog(onDismiss: () -> Unit, blocking: Boolean = false) {
         ),
         HelpItem.Plain(
             "Once tasks have been downloaded a Tile appears showing the Last downloaded Contest, " +
-                "Class & Handicap. Tapping this takes you directly to that Contest/Class. Useful for" +
+                "Class & Handicap. Tapping this takes you directly to that Contest/Class. Useful for " +
                 "subsequent contest days - a shortcut to your task download page" +
-                "Within this section Clear Link clears the Last downloaded task, Check Current compares" +
-                "the downloaded Official task with the currently listed Official task. If a changed" +
+                "Within this section Clear Link clears the Last downloaded task, Check Current compares " +
+                "the downloaded Official task with the currently listed Official task. If a changed " +
                 "Official task is detected the new task filename is shown. If XCSoar is already running " +
-                "use Task Manager to select the indicated task. If XCSoar is not running, it will" +
+                "use Task Manager to select the indicated task. If XCSoar is not running, it will " +
                 "load the new official task automatically. If the new task is one that was previously " +
                 "downloaded as an alternate no download will be conducted, to reduce data requirements " +
                 "out on grid where reception may be minimal."
